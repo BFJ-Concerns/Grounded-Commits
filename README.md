@@ -1,0 +1,426 @@
+# Grounded Commits
+
+**Version 0.1.0** · [Changelog](CHANGELOG.md)
+
+A commit-message format, and a pull-request convention to go with it, for
+repositories where coding agents write most of the commits, open most of the pull
+requests, and read the history back as their memory.
+
+## Why this exists
+
+The conventions in common use for commits and pull requests were designed by
+people, for people.
+
+- **Plain Git style** (a short subject, a blank line, a wrapped body that says
+  why) assumes a writer who remembers why they made a change, and a reader who
+  could ask them.
+- **Conventional Commits** (`feat:`, `fix(parser):`) was built so that release
+  tools could bump versions and write changelogs. Its body is optional, and it
+  defines only two types, `feat` and `fix`.
+- **Pull-request templates** (Summary, Test plan, a checklist) assume a person
+  filling them in honestly and a person reading them.
+
+Agents change both ends of that.
+
+**As writers**, agents are fluent but unreliable in particular ways:
+
+- They narrate the diff and leave out the context a reader needs. In one study
+  of 108 ChatGPT-written commit messages, 38 lacked context and 6 invented a
+  reason.
+- They copy whatever the history already looks like, because their tools tell
+  them to match the repository's recent commits. In one sample, 513 of 790
+  Claude-attributed commits carried a Conventional Commits prefix, though the
+  tool's own instructions never mention the format.
+- They overclaim. Of 432 agent pull requests whose descriptions did not fully
+  match their code, 45.4% claimed changes that had not been made. In a matched
+  sample, agent descriptions ran to a median of 355 words against 56 for
+  people's.
+
+**As readers**, agents search history before they understand it, by keyword and
+pattern. They cannot ask the author what they meant. And they act on what they
+read: a planted commit message has already steered an agent into an unintended
+Git operation carrying a shell payload.
+
+Yet when an agent commits, it holds four things it did not have to guess: the
+request it was given, what it observed, what it changed, and what it ran. The
+measured failures come from leaving those out or making them up, not from bad
+syntax. So the whole system rests on one rule:
+
+> **Write only what you have: the request, what you observed, what you changed,
+> what you ran. Say plainly what you lack.**
+
+The rule overrides the style of existing commits, and any tool instruction to
+imitate it.
+
+## How it fits together
+
+```
+work on a branch → commits carry the record → the PR body guides review
+                 → rebase, check, fast-forward → main has the same commits
+```
+
+- **Commit messages are the record.** Anyone with a clone, person or agent, can
+  learn what changed, why, and what was checked, without the forge.
+- **The pull request is for review.** Its body helps whoever is reviewing now,
+  and never repeats the commit messages.
+- **Branches land by rebase and fast-forward.** The branch is rebased onto the
+  target, checks run on the rebased tip, and the target simply moves forward to
+  it. Each commit lands as itself, with the same hash, and nothing written in the
+  pull request enters history.
+
+## Commit messages
+
+A message has three parts: a subject line, a body, and a block of trailers.
+Trailers are `Key: value` lines at the very end, which Git can read on its own.
+
+### Subject: `area: outcome`
+
+```
+scheduler: stop running a job twice when a worker shuts down
+```
+
+- **Area** is the part of the codebase the change is about. It is worked out
+  from the changed paths rather than picked: a label from the repository's list
+  or path map, a changed root file's name (`readme`), or the top-level directory
+  after skipping wrappers such as `src`, `lib`, `packages`, `apps` and `crates`.
+  Lower case, at most 24 characters. A change across everything uses `all`. Type
+  words such as `feat`, `fix` or `chore` are never areas.
+- **Outcome** says what is now true. Lower case, no full stop, no issue number,
+  emoji or `!`.
+- At most 72 characters; aim for 60.
+
+Why an area and not a type? Neither has been shown to help readers. But an area
+can be derived from the paths by a fixed procedure, while a type (`feat`, `fix`,
+`refactor`) is a judgement about intent that nothing can check. Agent commits are
+often large and mixed, so a single type per commit loses information. A typed
+header is still available where a tool needs it; see
+[Conventional Commits](#conventional-commits).
+
+### Body: the problem first
+
+Wrapped at 72 columns, no headings, in this order:
+
+1. **The problem or request:** what was wrong or asked for, how it showed, where
+   the request came from, and the names a searcher would type.
+2. **The change, and why this way,** described as behaviour, never as a list of
+   edits.
+3. Optionally, **`Considered and rejected:`** alternatives that were actually
+   weighed, one per sentence.
+4. Optionally, **limits.** A breaking change names what breaks and how to
+   migrate, or says the migration is unknown.
+
+Every reason must trace to something the writer actually has: an observation, a
+reference, or its instructions. When the writer does not know why, it writes
+"reason not available to the writer" rather than inventing a reason.
+
+Claims carry obligations. "No behaviour change intended" means the test suite
+ran on the final contents, or the message says it did not. A repaired bug names
+its symptom and its reproducer. A claimed speed-up gives before-and-after
+figures.
+
+The body can be left out only when behaviour does not change and the subject
+names a typo, a broken link, formatting, comment wording, a rename with no
+callers changed, or a regenerated file. A dependency bump always has a body.
+
+### Trailers: evidence Git can extract
+
+```
+Verified: <what was tested>; <command or scenario>; <what happened>
+Not-verified: <scope>; not run: <reason>
+Not-verified: <scope>; result unavailable: <reason>
+Refs: <absolute URL>
+Fixes: <commit hash> ("<that commit's subject>")
+Breaking-Change: <what breaks>; <what the consumer must do>
+```
+
+- Every commit that touches code, tests, configuration, schemas, dependencies,
+  build files or a documented contract carries at least one `Verified:` or
+  `Not-verified:` line. Empty values, a bare "passed" and "N/A" do not count.
+- `Not-verified:` is the honest way out. When saying nothing earns nothing,
+  guessing is the rational move, so the format gives the writer a proper way to
+  say "I didn't run this" or "the result is lost".
+- `Verified:` is a claim, not proof. A hook can check its shape; only review and
+  sampling can check that it is true.
+- "What was tested" names the code that was tested. After a rebase, a
+  `Verified: final contents` line stays only if the code is identical to what was
+  tested, or the check was run again. Otherwise the line names the commit that was
+  tested, and a `Not-verified:` line covers the rebased result.
+- `Refs:` is a full URL, never a closing keyword such as "Fixes #12".
+- `Fixes:` names the commit that introduced a bug, and only when the body says
+  the bug was shown present at that commit and absent at its parent. `git blame`
+  finds the last change to a line, not where a bug began.
+
+Why trailers? Git can pull them out by key without reading the body, for example
+`git log --format='%(trailers:key=Verified,valueonly)'`. Nothing can pull
+evidence out of prose.
+
+### Never in a commit message
+
+A narration of the diff or a list of files; a motive the writer was not given;
+"tests pass" without naming the tests; CI control tokens such as `[skip ci]`,
+even quoted; issue-closing keywords; instructions to future readers or agents
+(history is read as input, so it must not give orders); plan steps, scratch
+paths, tracking codes and model names.
+
+### Example
+
+```
+scheduler: stop running a job twice when a worker shuts down
+
+On shutdown the worker released its leases before draining its local
+queue, so a dequeued job was handed to another worker and also run
+locally. The reproducer shows duplicate invoice emails (issue 301).
+
+Drain the local queue first, then release leases. The new ordering
+test fails at 9f3c1a2b7d4e and passes at its parent, which
+establishes that commit as the origin.
+
+Verified: 9f3c1a2b7d4e^, 9f3c1a2b7d4e and final contents;
+  go test ./scheduler/... -run TestShutdownOrdering -count=50;
+  0 of 50, 7 of 50 and 0 of 50 runs failed respectively
+Not-verified: replay against production incident data; result
+  unavailable: the data is not retained outside billing
+Fixes: 9f3c1a2b7d4e ("scheduler: release leases eagerly on shutdown")
+Refs: https://forge.example/ops/billing/issues/301
+```
+
+## Pull requests
+
+Because the commits carry the record, the pull request does not have to. Its
+body is a short brief for whoever is reviewing now, person or bot. It holds only
+what no commit can: where to start, what to look at hard, what could not be
+checked, how to see the change work, and what was asked for but is not here.
+
+### Title
+
+The outcome of the whole branch, in the same `area: outcome` grammar. For a
+one-commit pull request, the title is that commit's subject. Draft state uses
+GitHub's draft flag, not a word in the title.
+
+### Body
+
+A lead of one or two sentences, then up to four sections. A section with nothing
+to say is left out; a heading followed by filler is a defect.
+
+| Part | When | What it holds |
+|---|---|---|
+| Lead (no heading) | Always | What the reviewer is asked to accept, and a plain link to the issue |
+| **Read** | Several commits, a stacked PR, or a diff whose shape is not obvious | Which commits prepare and which change behaviour; where to start; for a stacked PR, its base and the PR it depends on |
+| **Check** | When there is something specific | What to scrutinise; anything that could not be verified, in one line naming the commit that records it; questions for the reviewer, with what depends on the answer |
+| **Try** | When the change can be exercised or seen | Steps to try it, and captioned screenshots: how to see it, not what you saw |
+| **Not in this PR** | When the request asked for more than the branch delivers | Each missing item, with a link to the issue that tracks it, "not planned" or "no issue exists" |
+
+Length limits are soft upper bounds: about 50 words for one commit, 150 for a
+series, and 250 for several separate outcomes.
+
+### Never in the body
+
+- Commit-message text, copied or paraphrased; lists of commits or files;
+  narration of the diff.
+- Results or assurances such as "all tests pass" or "safe". What ran is in the
+  commits' `Verified:` lines. In one experiment, unsupported assurances raised two
+  open-weight reviewer models' approval of known-bad patches from 54.4% to 70.0%
+  and from 23.2% to 42.0%.
+- Checklists. A tick is not evidence, and some bots treat a ticked box as a
+  command.
+- Instructions to automated reviewers, or claims that a reviewer agreed.
+- Commit hashes or CI links, which go stale on every rebase. Name commits by
+  their subject.
+- Issue-closing keywords. Link issues plainly, and close them by hand after
+  landing.
+
+### During review
+
+- The body always describes the current branch. After each push, rewrite
+  whatever is no longer true and remove settled questions. Do not append dated
+  updates.
+- Put what each push changed in one comment. Answer declined findings in their
+  thread. If a reason matters in the long run, fold it into the relevant commit's
+  `Considered and rejected:` before landing.
+- Push fix-up commits during review rather than force-pushing, so reviewers can
+  see what changed.
+- Editing the body does not re-run CI or wake review bots. When an edit changes
+  something a reviewer relied on, ask for review again.
+
+### Example
+
+Four commits:
+
+```
+export: extract row serialisation from the buffered writer
+export: add a streaming writer behind the existing interface
+export: stream CSV exports instead of buffering them in memory
+docs: describe the X-Row-Count trailer for export clients
+```
+
+Title: `export: stream CSV exports instead of buffering them in memory`
+
+```
+Exports of over a million rows kill the worker at 2 GB (https://github.com/example/reports/issues/318). This branch streams rows as the cursor advances and moves the row count to a trailer.
+
+### Read
+The first two commits are mechanical and keep the buffered path; the third, "stream CSV exports", is the behaviour change. Start with export/stream.go.
+
+### Check
+Content-Length disappears from export responses (Breaking-Change trailer on the streaming commit). Do we know of any client that reads it?
+Production-volume replay not run; the streaming commit's trailer says why.
+
+### Try
+Against staging, request /exports/1.4m.csv with curl -N and watch worker RSS; the capture shows the result.
+
+### Not in this PR
+A progress signal for clients that read Content-Length. Issue 318 did not ask for it; no issue exists.
+```
+
+Nothing in it repeats a commit subject, lists files or claims a result.
+
+## Landing: rebase and fast-forward
+
+Once the review is approved:
+
+1. Fold the fix-up commits into the commits they correct, and reword any message
+   the review changed.
+2. Rebase onto the target branch and push once.
+3. Comment with the head that was reviewed and the output of
+   `git diff <reviewed-head> HEAD`. It is empty when only messages changed; when
+   it is not, `git range-diff` shows the difference commit by commit.
+4. When checks pass on the rebased tip, fast-forward the target to it.
+5. Close each fully delivered issue by hand.
+
+**Why not merge commits?** They add an extra commit for every pull request, turn
+the history from a line into a graph, and give the account a second place to
+live. **Why not squash?** The branch's commits never reach the target: it gets
+one new commit with a different hash. Git then reports the branch as unmerged,
+follow-up branches replay work that has already landed, and agents get confused.
+Squashing also folds every commit's own message into one.
+
+With a fast-forward, the target's commits *are* the branch's commits. Git agrees
+the branch is merged, and every commit keeps its own message.
+
+### On GitHub
+
+GitHub has no fast-forward button:
+
+- **Rebase and merge** "always updates the committer information and creates new
+  commit SHAs", which brings the squash problem back.
+- **The merge queue** only merges, rebases or squashes, and builds its own
+  commits.
+
+So on GitHub you land by pushing the approved, rebased tip to the target branch
+yourself, for example `git push origin <tip>:main`. GitHub then marks the pull
+request as merged, because a pull request "can be marked as merged if its head
+branch commits become reachable from the base branch outside that pull request".
+With branch protection on, only an identity allowed to bypass it can push
+directly, so the landing step has to do the protection's job itself: confirm
+approval and passing checks on that exact tip before pushing.
+
+## Hurdles and trade-offs
+
+- **Agents copy the history and default to Conventional Commits.** The rule
+  overrides both, but only a `commit-msg` hook that checks the shape makes it
+  stick. Without one, expect drift.
+- **Rebasing changes what was tested.** If the target branch moved, the rebased
+  code is not the code the checks ran on. Run them again, or record the gap with
+  `Not-verified:`.
+- **Landing on GitHub needs a trusted identity.** The fast-forward push goes
+  around the forge's own merge controls, so whatever lands must check approval
+  and CI itself, and must be allowed to bypass branch protection.
+- **Outside contributors are not yet solved.** For a pull request from a fork,
+  GitHub records the merge only when the pull request's own commits reach the
+  target. A rebase or a reworded message has to reach the contributor's branch
+  first, and maintainers can push there only when the contributor allows edits
+  from maintainers, on a user-owned fork. Their commit messages will not follow
+  this format either, and a fast-forward lands messages exactly as written. A
+  repository with many outside contributions needs a decided route for them:
+  landing their commits as written, rewording them on their branch where that is
+  allowed, or squashing their pull requests with a message composed in this
+  format.
+- **No summary of a multi-commit branch in history.** With no merge commit, each
+  commit has to stand on its own. The pull request's overview lives only on the
+  forge.
+- **Issues close by hand.** Without closing keywords, someone closes each
+  delivered issue after landing. That is one action per issue, traded for
+  keywords that behave differently on different forges and target branches.
+- **Tools need configuring.** Agent tools ship their own pull-request template,
+  which repository guidance must replace. Review bots that write summaries into
+  the description should be switched to comment mode.
+- **Agents fill whatever space they are given.** That is why every pull-request
+  section is optional, results have no section to live in, and the length limits
+  are low.
+- **One question gets harder.** With no type in the subject, "which commits were
+  bug fixes?" needs a keyword search rather than a match on `fix`.
+- **The cost of the ceremony is unmeasured.** That it pays for itself is a
+  judgement.
+
+## Conventional Commits
+
+Not the default, but available as a **typed header profile**,
+`type(area): outcome`, for repositories that run a release tool which reads
+types (semantic-release, release-please and the like), or that need to list
+changes by kind. The body, trailers and evidence rules are unchanged.
+
+The default leaves out the type for three reasons: an area can be derived from
+the changed paths and a type cannot; agent commits are large and mixed; and
+adding a type later is cheaper than removing one. In a devil's-advocate round,
+two advocates built the strongest typed rival they could. All four judges kept
+the default, but required its reasoning to be stated as a judgement of cost
+rather than as evidence.
+
+## How confident is this?
+
+**Moderately.** No study compares commit or pull-request formats with equal
+information for agent readers or agent writers. The design rests on mechanisms,
+published measurements and judgement, and the reports label which is which.
+
+The judging was blind but not neutral. In the commit research, all twelve
+first-place votes went to a proposal from the judge's own model family. In the
+pull-request research, each model's synthesis kept its own section structure.
+Contested questions were settled on the evidence, not on the votes.
+
+Before relying on it:
+
+- Deploy a `commit-msg` hook that checks the shape.
+- Score a sample of real agent commits and pull requests for narration, invented
+  reasons and filler in the evidence lines.
+- Decide how pull requests from outside contributors land.
+
+## What would change the answer
+
+- A controlled comparison of this format against a typed header with the same
+  body and evidence rules, run separately for readers and writers.
+- A scored sample showing that the evidence lines attract filler faster than
+  honest disclosure.
+- Commands recorded by the agent's tools that disagree with its `Verified:`
+  lines; the trailer would then point at captured evidence instead.
+- A test of how well matching `fix` finds bug fixes compared with keyword search
+  over area subjects.
+- Evidence that review bots read commit messages, which would let the pull
+  request's lead shrink.
+- A landing route that puts pull-request text into history, which would reopen
+  the pull-request design.
+
+## Using it
+
+The one-screen versions are written to drop into a repository's guidance for
+agents. They are drafts to adapt, not finished rules.
+
+- Commits: [`research/2026-10-02-commit-message-formats/GUIDANCE-DRAFT.md`](research/2026-10-02-commit-message-formats/GUIDANCE-DRAFT.md).
+  Its "Squash landing" section predates the choice to land by rebase and
+  fast-forward, and does not apply under it.
+- Pull requests: [`research/2026-10-05-pull-request-body/GUIDANCE-DRAFT.md`](research/2026-10-05-pull-request-body/GUIDANCE-DRAFT.md).
+
+## The research
+
+| Folder | Question | Main document |
+|---|---|---|
+| [`research/2026-10-02-commit-message-formats/`](research/2026-10-02-commit-message-formats/) | What commit-message format serves best when agents write and read most of the history? | `REPORT.md`, about 13,000 words |
+| [`research/2026-10-05-pull-request-body/`](research/2026-10-05-pull-request-body/) | What should a pull-request body hold when branches land by rebase and fast-forward? | `REPORT.md`, about 5,000 words |
+
+Each folder's `README.md` explains how that research ran. In short, models from
+two families, Claude and GPT, wrote proposals blind. In the commit research, four
+judges, two from each family, ranked them over three rounds, and the report was
+cross-checked four times by the family that did not write it. In the
+pull-request research, each model judged the other's proposal and wrote a
+synthesis; one synthesis became the report, edited afterwards, without a further
+cross-check. Every claim cites its primary source. The intermediate proposals,
+judgements and run records are not included.
