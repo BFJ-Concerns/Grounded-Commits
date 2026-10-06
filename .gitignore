@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# OS and editors
+.DS_Store
+Thumbs.db
+*~
+*.swp
+
+# Machine-local overrides
+*.local
+*.local.*
+
+# Environment files
+.env
+.env.*
