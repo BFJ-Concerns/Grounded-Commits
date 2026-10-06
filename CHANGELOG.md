@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 — 2026-10-06
+
+- The hook no longer reads every upper-case word followed by a hyphen and
+  digits as an issue key, which rejected subjects naming identifiers such as
+  `AGPL-3.0-or-later`, `UTF-8` and `SHA-256`. A repository that uses a
+  tracker with keys of that shape lists them in `.grounded-commits.toml` as
+  `issue_keys = ["PROJ"]`; the hook then rejects `PROJ-42` in a subject and
+  after a closing keyword, and treats any other key-shaped token as an
+  identifier. `#N`, `owner/repo#N` and issue URLs are caught as before.
+
 ## 0.1.0 — 2026-10-06
 
 First version.

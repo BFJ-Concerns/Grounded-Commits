@@ -50,7 +50,7 @@ import unicodedata
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
-FORMAT_VERSION = "0.1.0"
+FORMAT_VERSION = "0.1.1"
 LINE_LIMIT = 72
 SUBJECT_SCAN_LIMIT = 400  # beyond this a subject is only reported as too long
 AREA_RE = re.compile(r"^[a-z0-9][a-z0-9._/-]{0,23}$")
