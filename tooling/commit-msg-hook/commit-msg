@@ -35,6 +35,7 @@ Optional configuration in <repo>/.grounded-commits.toml (Python 3.11+):
   breaking_marker = "trailer" | "paragraph"            # typed profile only; default "trailer"
   areas = ["cli", "config"]                            # always-valid areas
   contract_docs = ["docs/api/", "openapi.yaml"]        # docs needing evidence
+  issue_keys = ["PROJ", "OPS"]                         # tracker keys: PROJ-42 is then an issue
   [area_map]                                           # path prefix -> label
   ".github/" = "ci"
   "myproject/billing/" = "billing"
@@ -109,12 +110,28 @@ KEYWORDS = {
 }
 KEYWORDS["any"] = "|".join(KEYWORDS.values())
 REFERENCES = {
-    "github": r"(#\d+|[\w.-]+/[\w.-]+#\d+)",
-    "gitlab": r"(#\d+|[\w.-]+(/[\w.-]+)+#\d+|https?://\S+/-/(issues|work_items)/\d+|[A-Z][A-Z0-9_]+-\d+)",
-    "forgejo": r"(#\d+|[\w.-]+/[\w.-]+#\d+|https?://\S+/issues/\d+)",
+    "github": r"#\d+|[\w.-]+/[\w.-]+#\d+",
+    "gitlab": r"#\d+|[\w.-]+(/[\w.-]+)+#\d+|https?://\S+/-/(issues|work_items)/\d+",
+    "forgejo": r"#\d+|[\w.-]+/[\w.-]+#\d+|https?://\S+/issues/\d+",
 }
-REFERENCES["any"] = r"(#\d+|[\w.-]+(/[\w.-]+)+#\d+|https?://\S+/(issues|-/issues|work_items)/\d+|[A-Z][A-Z0-9_]+-\d+)"
+REFERENCES["any"] = r"#\d+|[\w.-]+(/[\w.-]+)+#\d+|https?://\S+/(issues|-/issues|work_items)/\d+"
 EMOJI_RE = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u20E3\U0001F3FB-\U0001F3FF]")
+# A tracker key such as PROJ-42 counts as a reference only where the repository
+# names its keys in `issue_keys`: the shape alone also fits UTF-8, SHA-256 and
+# AGPL-3.0, so an unnamed key is taken to be an identifier.
+ISSUE_KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
+
+
+def issue_key_pattern(config):
+    """`(PROJ|OPS)-<digits>` for the configured tracker keys, or None without any."""
+    keys = config["issue_keys"]
+    return "(" + "|".join(re.escape(key) for key in keys) + r")-\d+" if keys else None
+
+
+def reference_pattern(config):
+    """A group matching what the configured forge resolves as an issue reference."""
+    keys = issue_key_pattern(config)
+    return "(" + REFERENCES[config["forge"]] + (f"|{keys}" if keys else "") + ")"
 
 
 class CheckError(Exception):
@@ -210,7 +227,7 @@ def parse_trailers(message):
 # --- configuration -----------------------------------------------------------
 
 DEFAULT_CONFIG = {"forge": "any", "header": "area", "breaking_marker": "trailer", "areas": [], "contract_docs": [],
-                  "area_map": {}}
+                  "issue_keys": [], "area_map": {}}
 
 
 def load_config(root):
@@ -236,9 +253,12 @@ def load_config(root):
     for key, allowed in choices.items():
         if not isinstance(config[key], str) or config[key] not in allowed:
             raise CheckError(f"{path}: {key} must be one of {', '.join(allowed)}")
-    for key in ("areas", "contract_docs"):
+    for key in ("areas", "contract_docs", "issue_keys"):
         if not isinstance(config[key], list) or not all(isinstance(v, str) for v in config[key]):
             raise CheckError(f"{path}: {key} must be a list of strings")
+    for key in config["issue_keys"]:
+        if not ISSUE_KEY_RE.match(key):
+            raise CheckError(f"{path}: issue key `{key}` must be upper-case letters, digits or `_`, starting with a letter")
     if not isinstance(config["area_map"], dict) or not all(
             isinstance(k, str) and isinstance(v, str) for k, v in config["area_map"].items()):
         raise CheckError(f"{path}: area_map must map path prefixes to areas")
@@ -410,7 +430,8 @@ def check_subject(subject, paths, config, tracked):
                         "(identifiers keep their case)")
     if subject.endswith("."):
         findings.append("subject ends with a full stop")
-    if re.search(r"(^|[\s(])(#\d+|[\w.-]+(/[\w.-]+)+#\d+|[A-Z][A-Z0-9_]+-\d+)\b", outcome):
+    keys = issue_key_pattern(config)
+    if re.search(r"(^|[\s(])(#\d+|[\w.-]+(/[\w.-]+)+#\d+" + (f"|{keys}" if keys else "") + r")\b", outcome):
         findings.append("subject carries an issue reference; put the issue in a `Refs:` trailer as an absolute URL")
     if "!" in outcome:
         findings.append("`!` does not belong in the outcome; a break is a `Breaking-Change:` trailer"
@@ -519,7 +540,7 @@ def forbidden_content(message, config):
     findings = []
     for match in CI_TOKEN_RE.finditer(message):
         findings.append(f"contains the CI control token `{match.group(0)}`; remove it, and if one is wanted the user adds it")
-    actionable = re.compile(r"(?i:\b(" + KEYWORDS[config["forge"]] + r")):?[ \t]+(?i:issues?[ \t]+)?" + REFERENCES[config["forge"]])
+    actionable = re.compile(r"(?i:\b(" + KEYWORDS[config["forge"]] + r")):?[ \t]+(?i:issues?[ \t]+)?" + reference_pattern(config))
     for match in actionable.finditer(message):
         findings.append(f"`{match.group(0)}` would act on an issue at the forge; reference it as `Refs: <absolute URL>` instead")
     return findings

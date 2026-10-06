@@ -41,6 +41,7 @@ header = "area"           # or "typed" for the Conventional Commits header profi
 breaking_marker = "trailer"  # typed profile: "paragraph" where the release parser reads BREAKING CHANGE:
 areas = ["cli", "config"] # areas that are always valid
 contract_docs = ["docs/api/"]  # documentation that states a contract and needs evidence
+issue_keys = ["PROJ"]     # tracker keys: PROJ-42 is then an issue reference, UTF-8 stays an identifier
 
 [area_map]                # path prefix -> area, longest match wins, checked before derivation
 ".github/" = "ci"

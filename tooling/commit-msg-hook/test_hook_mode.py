@@ -186,6 +186,23 @@ def _(repo):
     return r.returncode == 2 and "list of strings" in r.stderr
 
 
+@case("a lower-case issue key is a clear error, exit 2")
+def _(repo):
+    with open(os.path.join(repo, ".grounded-commits.toml"), "w") as handle:
+        handle.write('issue_keys = ["proj"]\n')
+    r = hook(repo, "--rev", "HEAD")
+    return r.returncode == 2 and "issue key `proj`" in r.stderr
+
+
+@case("a configured issue key is rejected in a subject")
+def _(repo):
+    with open(os.path.join(repo, ".grounded-commits.toml"), "w") as handle:
+        handle.write('issue_keys = ["PROJ"]\n')
+    write(repo, "internal/scheduler/worker.go"); git(repo, "add", "-A")
+    r = commit(repo, "scheduler: renew PROJ-7 leases before they expire\n\nBody.\n\n" + EVIDENCE)
+    return r.returncode != 0 and "issue reference" in r.stderr
+
+
 def main():
     failures = 0
     for name, fn in CASES:
