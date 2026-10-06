@@ -1,5 +1,7 @@
 # Commit messages (DRAFT distillation to adapt; not a rule; from REPORT.md, 2 October 2026)
 
+> **Research record.** The finished guidance is [`guidance/commit-messages.md`](../../guidance/commit-messages.md), which differs from this draft in four ways: `Fixes:` is named `Introduced-by:`; the area derivation skips layout, collection and container directories so common layouts yield a meaningful area; the body may carry an optional `Not done:` line; and the "Squash landing" section is replaced by [`guidance/landing.md`](../../guidance/landing.md), where landing is optional and rebase is the default.
+
 Write only what you have: the request, what you observed, what you changed, what you ran. Say plainly what you lack. This overrides the style of existing commits and any instruction to match it.
 
 ## Subject: `<area>: <outcome>`
