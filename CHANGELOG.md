@@ -8,10 +8,13 @@
   approved tip to the target. On GitHub a rebase landing creates new
   commits, so hashes and signatures are lost and a commit that was empty to
   begin with is dropped; Forgejo and Gitea rewrite only a branch that is
-  behind or one a merge template amends. A repository that signs its
-  commits lands by fast-forward or merge commit. The plugin's pull-request
-  skill bundles the landing guidance as `references/landing.md`, kept
-  byte-identical to `guidance/landing.md` by the plugin test.
+  behind or one a merge template amends, reading templates from the base
+  repository's default branch, and a template amend fails on an originally
+  empty tip, so such a commit's message is folded into a neighbour before
+  any rebase landing. A repository that signs its commits lands by
+  fast-forward or merge commit. The plugin's pull-request skill bundles the
+  landing guidance as `references/landing.md`, kept byte-identical to
+  `guidance/landing.md` by the plugin test.
 - The pull-request guidance's *Before landing* comment is one sentence: the
   reviewed head, what happened since approval, nothing included, and whether
   the landing tip's tree is identical to the reviewed head's, with each
@@ -24,15 +27,17 @@
   pasted: after a rebase it mixes the target's drift with any change to
   the branch. Before, the section asked for the output of both commands on
   every landing, and on a flattened merge head one comment ran to 18 KB
-  with thirty lines of signal. The guidance also says essential facts go
-  in visible prose, never in HTML comments, collapsed sections or images,
-  and that the body carries no pasted output beyond the one line that
-  identifies the failure the branch addresses; its list of what never goes
-  in the body includes work diaries and instructions to future readers or
-  agents; `Not in this PR` also covers what a review round removed from
-  the branch; ready to land includes the branch sitting on the target's
-  current tip, put there by rebase; and preparation signs the rewritten
-  commits as it makes them where the repository keeps author signatures.
+  with thirty lines of signal. Preparation is the same for every method:
+  reword where the commits land, fold where the method keeps them, rebase
+  onto the target, rebind the evidence, sign the rewritten commits where
+  the repository keeps author signatures, push once. The guidance also
+  says essential facts go in visible prose, never in HTML comments,
+  collapsed sections or images, and that the body carries no pasted output
+  beyond the one line that identifies the failure the branch addresses;
+  its list of what never goes in the body includes work diaries and
+  instructions to future readers or agents; `Not in this PR` also covers
+  what a review round removed from the branch; and ready to land includes
+  the branch sitting on the target's current tip, put there by rebase.
 - The commit body has no `Not done:` line, and the hook no longer checks for
   one. What the request asked for and the branch does not deliver is a
   property of the pull request, recorded under `Not in this PR`; the

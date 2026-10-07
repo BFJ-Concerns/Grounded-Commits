@@ -118,37 +118,41 @@ narration, repetition or assurance.
 ## Before landing
 
 Once review is approved, record the reviewed head's hash. Then, whatever the
-method: where it keeps the commits (fast-forward or rebase), fold the fix-ups
-into the commits they correct and reword any message the review changed,
-folding being optional under squash or a merge commit; rebase onto the target;
-rebind the evidence of every commit the rewrite produced, not only the
-reworded ones, since folding and rebasing change trees (grounded-commits,
-*After a rewrite*); sign the rewritten commits as you make them where the
-repository keeps author signatures (`commit.gpgsign`, or `-S` on the rebase),
-since a rewrite replaces the signed objects; and push once. A branch that
-contains merge commits keeps them with `--rebase-merges` for a fast-forward or
-merge-commit landing and is deliberately flattened for a rebase landing, since
-that route lands only a linear branch and GitHub's replay rewrites every
-commit. Under squash or a merge commit the landed message is supplied
-explicitly: for a squash, one message composed in the commit format from the
-branch's commits, with evidence rebound to the landed tree; for a merge
-commit, the pull-request title alone. Never the forge's default, and never
-this body. A pull request from a fork lands by the route the repository's
-guidance records: rebased as written, squashed with a composed message, or
-reworded on the contributor's branch only where they allow edits from
-maintainers; with no route recorded, ask the user. Which method the repository
-uses, what each does to the commits and the forge settings for it are in
-`references/landing.md`, relative to this skill's directory: fast-forward is
-the default and rebase the fallback a repository chooses once where its
-landing identity may not push to the target, which on GitHub lands new commits
-without your signatures, as a squash does everywhere.
+method: where the branch's commits will land (fast-forward, rebase or a merge
+commit), reword any message the review changed and fold the fix-ups into the
+commits they correct, folding being optional under a merge commit, while under
+squash both serve only the comparison below, since the landed message is
+composed afresh; rebase onto the target; rebind the evidence of every commit
+the rewrite produced, not only the reworded ones, since folding and rebasing
+change trees (grounded-commits, *After a rewrite*); sign the rewritten commits
+as you make them where the repository keeps author signatures
+(`commit.gpgsign`, or `-S` on the rebase), since a rewrite replaces the signed
+objects; and push once. A branch that contains merge commits keeps them with
+`--rebase-merges` for a fast-forward or merge-commit landing and is
+deliberately flattened for a rebase landing, since that route lands only a
+linear branch and GitHub's replay rewrites every commit; under squash they
+need no keeping, since one commit lands. For a rebase landing, fold the
+message of any commit that was empty to begin with into a neighbour, as
+`references/landing.md` describes. Under squash or a merge commit the landed
+message is supplied explicitly: for a squash, one message composed in the
+commit format from the branch's commits, with evidence rebound to the landed
+tree; for a merge commit, the pull-request title alone. Never the forge's
+default, and never this body. A pull request from a fork lands by the route
+the repository's guidance records: rebased as written, squashed with a
+composed message, or reworded on the contributor's branch only where they
+allow edits from maintainers; with no route recorded, ask the user. Which
+method the repository uses, what each does to the commits and the forge
+settings for it are in `references/landing.md`, relative to this skill's
+directory: fast-forward is the default and rebase the fallback a repository
+chooses once where its landing identity may not push to the target, which on
+GitHub lands new commits without your signatures, as a squash does everywhere.
 
-Either way, before landing, comment with one sentence: the reviewed head's
-hash, what happened since approval (folded, reworded, rebased, or nothing),
-and whether what lands is what was reviewed. The forge records that the head
-moved, not whether anything changed, and its compare view shows the diff, not
-what happened to the messages. Which comparison to make, and to attach,
-depends on the branch:
+Whatever the method, before landing, comment with one sentence: the reviewed
+head's hash, what happened since approval (folded, reworded, rebased, or
+nothing), and whether what lands is what was reviewed. The forge records that
+the head moved, not whether anything changed, and its compare view shows the
+diff, not what happened to the messages. Which comparison to make, and to
+attach, depends on the branch:
 
 - **Flattened merge.** Where the reviewed head is a merge commit that landing
   flattened, `git range-diff` skips the merge, pairs the pre-merge commit with
@@ -195,11 +199,12 @@ Re-run the checks on the new tip or record the gap with `Not-verified:`. Ready
 to land means: no open question in the body, `Not in this PR` current, every
 commit message true of its folded contents, the forge not showing draft state,
 the branch still on the target's current tip, put there by rebase and not by
-merging the target in, the required approvals present, and the required checks
-passing on the exact head that will land. Where the landing method rewrote the
-commits, read the landed messages back (`git log --format=%B <range>`) and
-compare them with what was pushed. After landing, close each fully delivered
-issue by hand, in a comment naming the landed commit.
+merging the target in, for a rebase landing no commit that was empty to begin
+with, the required approvals present, and the required checks passing on the
+exact head that will land. Where the landing method rewrote the commits, read
+the landed messages back (`git log --format=%B <range>`) and compare them with
+what was pushed. After landing, close each fully delivered issue by hand, in a
+comment naming the landed commit.
 
 ## Examples
 
