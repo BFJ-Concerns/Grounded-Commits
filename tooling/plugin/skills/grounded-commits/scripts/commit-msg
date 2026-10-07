@@ -70,8 +70,10 @@ JVM_LAYOUT = {"java", "kotlin", "scala"}
 CODE_HOSTS = {"github", "gitlab", "bitbucket", "codeberg", "sourceforge"}
 COLLECTION_WRAPPERS = {"packages", "apps", "crates", "modules", "services", "cmd", "pkg", "internal"}
 # A file that stands for its directory yields the directory's name, unless that
-# directory is a layout wrapper, which is never an area.
-DIRECTORY_FILES = {"__init__", "__main__", "mod", "index", "lib", "main"}
+# directory is layout (a wrapper, or test/tests directly inside one), which is
+# never an area. Matched by full lower-case file name.
+DIRECTORY_FILES = {"__init__.py", "__main__.py", "mod.rs", "lib.rs", "main.rs", "main.go",
+                   "index.js", "index.ts", "index.jsx", "index.tsx", "index.mjs", "index.cjs"}
 
 REVERT_RE = re.compile(r'^(Revert|Reapply) ".+"$')
 AUTOSQUASH_PREFIXES = ("fixup! ", "squash! ", "amend! ")
@@ -301,7 +303,9 @@ def derive_area(path, children):
     is skipped too, and after java/kotlin/scala the reverse-domain package
     root is skipped. Any other directory is the area. With none left, the
     file's name without its extension, or its directory for a file that
-    stands for one (__init__.py, mod.rs, index.*, main.*, lib.*)."""
+    stands for one (__init__.py, __main__.py, mod.rs, lib.rs, main.rs,
+    main.go, index.js and the other JavaScript and TypeScript extensions),
+    unless that directory is layout, which gives nothing."""
     parts = path.split("/")
     dirs = parts[:-1]
     i = 0
@@ -331,8 +335,11 @@ def derive_area(path, children):
 
 def file_area(name, dirs):
     stem = PurePosixPath(name).stem or name
-    if stem.lower() in DIRECTORY_FILES and dirs:
-        return None if dirs[-1].lower() in LAYOUT_WRAPPERS else normalise(dirs[-1]) or None
+    if name.lower() in DIRECTORY_FILES and dirs:
+        parent = dirs[-1].lower()
+        layout = parent in LAYOUT_WRAPPERS or (parent in TEST_UNDER_LAYOUT and len(dirs) > 1
+                                                and dirs[-2].lower() in LAYOUT_WRAPPERS)
+        return None if layout else normalise(dirs[-1]) or None
     candidate = normalise(stem)
     if not candidate:
         return None

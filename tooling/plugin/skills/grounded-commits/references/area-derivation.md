@@ -22,9 +22,10 @@ configuring a repository's path map.
    directory is the area. With no directory left, the area is the file's name
    without its extension (`README.md` gives `readme`), or the directory's
    name for a file that stands for its directory (`__init__.py`,
-   `__main__.py`, `mod.rs`, `index.ts`, `main.go`, `lib.rs`); where that
-   directory is a layout directory, as for a crate's `src/lib.rs`, the file
-   gives `all`, named in the body.
+   `__main__.py`, `mod.rs`, `lib.rs`, `main.rs`, `main.go`, and `index` with
+   a JavaScript or TypeScript extension); where that directory is a layout
+   directory, or `test` or `tests` directly inside one, as for a crate's
+   `src/lib.rs`, the file gives `all`, named in the body.
 3. Lower-case it, drop characters outside `[a-z0-9._/-]`, and trim anything
    that is not a letter or digit from both ends (`.github` gives `github`). A
    result longer than 24 characters is not an area: use `all` and name the

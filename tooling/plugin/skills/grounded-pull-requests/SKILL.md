@@ -40,8 +40,9 @@ paragraph on one line. Leave out any section with nothing to say; a heading
 followed by filler is a defect. Essential facts go in visible prose, never in
 HTML comments, collapsed sections or images, which a reader or tool may not
 expand. The reverse holds too: a fact surrounded by pasted output is as good
-as hidden, so the body carries no pasted output beyond the line that
-identifies a failure, and a comment that must carry more puts it in a
+as hidden, so the body carries no pasted output beyond the one line that
+identifies the failure the branch addresses, such as the error message in the
+lead, and never a check result; a comment that must carry more puts it in a
 collapsed block beneath the sentence that says what it shows.
 
 1. **Lead** (always, no heading). One or two sentences: the problem or request
@@ -125,21 +126,21 @@ change trees (grounded-commits, *After a rewrite*) — sign the rewritten
 commits as you make them where the repository keeps author signatures
 (`commit.gpgsign`, or `-S` on the rebase), since a rewrite replaces the signed
 objects, and push once; a branch that contains merge commits keeps them with
-`--rebase-merges` only where the landing is a fast-forward or a merge commit,
-since a forge-side rebase flattens them, and is otherwise deliberately
-flattened. If it will land by squash or merge commit, folding is optional, and
-the landed message is supplied explicitly: for a squash, one message composed
-in the commit format from the branch's commits, with evidence rebound to the
-landed tree; for a merge commit, the pull-request title alone. Never the
-forge's default, and never this body. A pull request from a fork lands by the
-route the repository's guidance records — rebased as written, squashed with a
-composed message, or reworded on the contributor's branch only where they
-allow edits from maintainers; with no route recorded, ask the user. Which
-method the repository uses, what each does to the commits and the forge
-settings for it are in `references/landing.md`, relative to this skill's
-directory: fast-forward is the default and rebase the fallback a repository
-chooses once where its landing identity may not push to the target, which
-lands new commits without your signatures, as a squash does.
+`--rebase-merges` for a fast-forward landing and is deliberately flattened for
+a rebase landing, since a forge-side rebase flattens them anyway. If it will
+land by squash or merge commit, folding is optional, a merge commit keeps the
+branch's own merges, and the landed message is supplied explicitly: for a
+squash, one message composed in the commit format from the branch's commits,
+with evidence rebound to the landed tree; for a merge commit, the pull-request
+title alone. Never the forge's default, and never this body. A pull request
+from a fork lands by the route the repository's guidance records — rebased as
+written, squashed with a composed message, or reworded on the contributor's
+branch only where they allow edits from maintainers; with no route recorded,
+ask the user. Which method the repository uses, what each does to the commits
+and the forge settings for it are in `references/landing.md`, relative to this
+skill's directory: fast-forward is the default and rebase the fallback a
+repository chooses once where its landing identity may not push to the target,
+which lands new commits without your signatures, as a squash does.
 
 Either way, before landing, comment with one sentence: the reviewed head's
 hash, what happened since approval (folded, reworded, rebased, or nothing),
@@ -151,12 +152,9 @@ depends on the branch:
 - **Flattened merge.** Where the reviewed head is a merge commit that landing
   flattened, `git range-diff` skips the merge, pairs the pre-merge commit with
   the flattened one, and reports the merge's own resolution and the target's
-  drift as change, whatever the tree test says. Compare the branch's patch
-  instead, `git diff $(git merge-base <target> <reviewed-head>) <reviewed-
-  head>` against `git diff <target> HEAD`, and the messages, `git log
-  --format=%B` over `<target>..<reviewed-head>` and over `<target>..HEAD`; say
-  what each comparison shows and attach the two comparisons, not the four
-  outputs.
+  drift as change, whatever the tree test says. Compare the branch's patch and
+  its messages instead, with the two commands below; say what each shows and
+  attach their output.
 - **Tree identical.** Otherwise, `git rev-parse <reviewed-head>^{tree}
   HEAD^{tree}` printing one hash twice means the code that lands is the code
   that was approved. Say so, then name each commit whose message changed, by a
@@ -167,15 +165,24 @@ depends on the branch:
 - **Tree differs.** `git range-diff <target> <reviewed-head> HEAD` shows the
   change commit by commit, messages included. Say what it shows, by commit:
   the target's drift in context lines and nothing else, a fix-up folded in, a
-  hunk dropped, a message reworded; attach it. A branch that keeps its merge
-  commits (`--rebase-merges`) passes `--remerge-diff`, or changes to the merge
-  commits' messages go unreported.
+  hunk dropped, a message reworded; attach it.
 
-An attachment sits inside a collapsed block, a `<details>` element whose
-`<summary>` names the command, with a blank line after the summary so the
-fenced block inside renders, which GitHub and Forgejo both need. Never paste
-`git diff <reviewed-head> HEAD`: after a rebase it mixes the target's drift
-with any change to the branch and cannot tell them apart. For example:
+```
+diff <(git diff $(git merge-base <target> <reviewed-head>) <reviewed-head>) <(git diff <target> HEAD)
+diff <(git log --format=%B <target>..<reviewed-head>) <(git log --format=%B <target>..HEAD)
+```
+
+A branch that keeps its merge commits (`--rebase-merges`) passes
+`--remerge-diff` to every `git range-diff` above, or changes to the merge
+commits' messages go unreported. Under squash or a merge commit, the
+comparison is between the reviewed head and the branch tip that will be
+squashed or merged, and the composed or generated landing message is read back
+after landing as `landing.md` describes. An attachment sits inside a collapsed
+block, a `<details>` element whose `<summary>` names the command, with a blank
+line after the summary so the fenced block inside renders, which GitHub and
+Forgejo both need. Never paste `git diff <reviewed-head> HEAD`: after a rebase
+it mixes the target's drift with any change to the branch and cannot tell them
+apart. For example:
 
 ```
 Reviewed head 3e7a1c5: folded the two fix-ups into their commits, main had not moved, tree identical; "stream CSV exports" reworded with the Verified line for the re-run, no other message changed (range-diff attached).
