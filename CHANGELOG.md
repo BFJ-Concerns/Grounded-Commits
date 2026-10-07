@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-07
 
 - Fast-forward is the default landing method, as the research decided, and
   rebase the stated fallback, chosen once by a repository whose forge cannot
