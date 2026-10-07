@@ -125,32 +125,37 @@ commit that was empty to begin with into a neighbour (`references/landing.md`
 says why); under squash rewording and folding are optional, since the landed
 message is composed afresh from the commits; rebase onto the target, which
 drops any merge of the target into the branch and brings the branch up to date
-in its place, and re-apply the conflict resolution and any manual amendment
-each other merge carried, kept or flattened, since `--rebase-merges` recreates
-a merge without them; compare the cumulative patch with the reviewed head's;
+in its place (under `--rebase-merges`, only in the `rebase-cousins` mode
+below), and re-apply the conflict resolution and any manual amendment each
+other merge carried, kept or flattened, since `--rebase-merges` recreates a
+merge without them; compare the cumulative patch with the reviewed head's;
 rebind the evidence of every commit the rewrite produced, not only the
 reworded ones, since folding and rebasing change trees (grounded-commits,
 *After a rewrite*), under squash in the composed message instead; sign the
 rewritten commits as you make them where they will land and the repository
 keeps author signatures (`commit.gpgsign`, or `-S` on the rebase), since a
 rewrite replaces the signed objects; and push once. A branch whose other merge
-commits are worth keeping keeps them with `--rebase-merges` under every method
-but a rebase landing, which lands only a linear branch and on GitHub rewrites
-every commit; there they are deliberately flattened. Under squash or a merge
-commit the landed message is supplied explicitly: for a squash, one message
-composed in the commit format from the branch's commits, with evidence rebound
-to the landed tree; for a merge commit, the pull-request title alone. Never
-the forge's default, and never this body. A pull request from a fork lands by
-the route the repository's guidance records: rebased as written, squashed with
-a composed message, or reworded; whatever the route, the prepared branch must
-become the pull request's head, so push it to the contributor's branch where
-they allow edits from maintainers, or ask them to push it; with no route
-recorded, ask the user. Which method the repository uses, what each does to
-the commits and the forge settings for it are in `references/landing.md`,
-relative to this skill's directory: fast-forward is the default and rebase the
-fallback a repository chooses once where its landing identity may not push to
-the target, which on GitHub lands new commits without your signatures, as a
-squash does everywhere.
+commits are worth keeping keeps them with `--rebase-merges=rebase-cousins`
+under every method but a rebase landing, which lands only a linear branch and
+on GitHub rewrites every commit; there they are deliberately flattened. The
+`rebase-cousins` mode puts the branch's first commit on the target's tip and
+drops a merge of the target as redundant; the default mode leaves the commits
+beneath such a merge at their old base and recreates it against the new tip,
+so the branch is current only by a merge that ready to land forbids. Under
+squash or a merge commit the landed message is supplied explicitly: for a
+squash, one message composed in the commit format from the branch's commits,
+with evidence rebound to the landed tree; for a merge commit, the pull-request
+title alone. Never the forge's default, and never this body. A pull request
+from a fork lands by the route the repository's guidance records: rebased as
+written, squashed with a composed message, or reworded; whatever the route,
+the prepared branch must become the pull request's head, so push it to the
+contributor's branch where they allow edits from maintainers, or ask them to
+push it; with no route recorded, ask the user. Which method the repository
+uses, what each does to the commits and the forge settings for it are in
+`references/landing.md`, relative to this skill's directory: fast-forward is
+the default and rebase the fallback a repository chooses once where its
+landing identity may not push to the target, which on GitHub lands new commits
+without your signatures, as a squash does everywhere.
 
 Whatever the method, before landing, comment with one sentence: the reviewed
 head's hash, what happened since approval (folded, reworded, rebased, or
