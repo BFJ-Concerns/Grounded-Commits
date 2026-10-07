@@ -120,34 +120,36 @@ narration, repetition or assurance.
 Once review is approved, record the reviewed head's hash. Then, whatever the
 method: where the branch's commits will land (fast-forward, rebase or a merge
 commit), reword any message the review changed and fold the fix-ups into the
-commits they correct, folding being optional under a merge commit, and for a
-rebase landing also fold the message of any commit that was empty to begin
-with into a neighbour (`references/landing.md` says why); under squash
-rewording and folding are optional, since the landed message is composed
-afresh from the commits and carries the rebound evidence; rebase onto the
-target; rebind the evidence of every commit the rewrite produced, not only the
-reworded ones, since folding and rebasing change trees (grounded-commits,
-*After a rewrite*); sign the rewritten commits as you make them where the
-repository keeps author signatures (`commit.gpgsign`, or `-S` on the rebase),
-since a rewrite replaces the signed objects; and push once. A branch that
-contains merge commits keeps them with `--rebase-merges` under every method
-but a rebase landing, which lands only a linear branch and on GitHub rewrites
-every commit; there they are deliberately flattened, with what each merge
-alone carried kept and the cumulative patch compared against the reviewed
-head's. Under squash or a merge commit the landed message is supplied
-explicitly: for a squash, one message composed in the commit format from the
-branch's commits, with evidence rebound to the landed tree; for a merge
-commit, the pull-request title alone. Never the forge's default, and never
-this body. A pull request from a fork lands by the route the repository's
-guidance records: rebased as written, squashed with a composed message, or
-reworded; whatever the route, the prepared branch must become the pull
-request's head, so push it to the contributor's branch where they allow edits
-from maintainers, or ask them to push it; with no route recorded, ask the
-user. Which method the repository uses, what each does to the commits and the
-forge settings for it are in `references/landing.md`, relative to this skill's
-directory: fast-forward is the default and rebase the fallback a repository
-chooses once where its landing identity may not push to the target, which on
-GitHub lands new commits without your signatures, as a squash does everywhere.
+commits they correct, and for a rebase landing also fold the message of any
+commit that was empty to begin with into a neighbour (`references/landing.md`
+says why); under squash rewording and folding are optional, since the landed
+message is composed afresh from the commits; rebase onto the target; rebind
+the evidence of every commit the rewrite produced, not only the reworded ones,
+since folding and rebasing change trees (grounded-commits, *After a rewrite*),
+under squash in the composed message instead; sign the rewritten commits as
+you make them where they will land and the repository keeps author signatures
+(`commit.gpgsign`, or `-S` on the rebase), since a rewrite replaces the signed
+objects; and push once. A branch that contains merge commits keeps them with
+`--rebase-merges` under every method but a rebase landing, which lands only a
+linear branch and on GitHub rewrites every commit; there they are deliberately
+flattened. Either way a replayed or flattened merge loses the conflict
+resolution and any manual amendment it carried, which `--rebase-merges` does
+not re-apply, so re-apply them and compare the cumulative patch against the
+reviewed head's, as the flattened-merge comparison below does. Under squash or
+a merge commit the landed message is supplied explicitly: for a squash, one
+message composed in the commit format from the branch's commits, with evidence
+rebound to the landed tree; for a merge commit, the pull-request title alone.
+Never the forge's default, and never this body. A pull request from a fork
+lands by the route the repository's guidance records: rebased as written,
+squashed with a composed message, or reworded; whatever the route, the
+prepared branch must become the pull request's head, so push it to the
+contributor's branch where they allow edits from maintainers, or ask them to
+push it; with no route recorded, ask the user. Which method the repository
+uses, what each does to the commits and the forge settings for it are in
+`references/landing.md`, relative to this skill's directory: fast-forward is
+the default and rebase the fallback a repository chooses once where its
+landing identity may not push to the target, which on GitHub lands new commits
+without your signatures, as a squash does everywhere.
 
 Whatever the method, before landing, comment with one sentence: the reviewed
 head's hash, what happened since approval (folded, reworded, rebased, or
@@ -156,12 +158,13 @@ the head moved, not whether anything changed, and its compare view shows the
 diff, not what happened to the messages. Which comparison to make, and to
 attach, depends on the branch:
 
-- **Flattened merge.** Where the reviewed head is a merge commit that landing
-  flattened, `git range-diff` skips the merge, pairs the pre-merge commit with
-  the flattened one, and reports the merge's own resolution and the target's
-  drift as change, whatever the tree test says. Compare the branch's patch and
-  its messages instead, with the two commands below; say what each shows and
-  attach their output.
+- **Flattened merge.** Where the branch contained a merge commit that
+  preparation flattened, at the reviewed head or earlier, `git range-diff`
+  skips the merge, pairs the commits around it with the flattened ones, and
+  reports the merge's own resolution and the target's drift as change,
+  whatever the tree test says. Compare the branch's patch and its messages
+  instead, with the two commands below; say what each shows and attach their
+  output.
 - **Tree identical.** Otherwise, `git rev-parse <reviewed-head>^{tree}
   HEAD^{tree}` printing one hash twice means the code that lands is the code
   that was approved. Say so, then name each commit whose message changed, by a

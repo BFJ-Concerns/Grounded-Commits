@@ -27,24 +27,24 @@
   `<details>` block, with the blank line after the summary that GitHub and
   Forgejo both need before a fenced block renders: the `git range-diff`
   when any commit changed, or two comparisons of the branch's patches and
-  messages where the reviewed head was a merge that landing flattened,
-  which range-diff misreports. `git diff <reviewed-head> HEAD` is never
-  pasted: after a rebase it mixes the target's drift with any change to
-  the branch. Before, the section asked for the output of both commands on
-  every landing, and on a flattened merge head one comment ran to 18 KB
-  with thirty lines of signal. Preparation applies to every method: reword
-  where the branch's commits land, fold where they land (optional under a
-  merge commit, and before a rebase landing an originally empty commit's
-  message is folded into a neighbour), rebase onto the target, rebind the
-  evidence, sign the rewritten commits where the repository keeps author
-  signatures, push once. The guidance also
-  says essential facts go in visible prose, never in HTML comments,
-  collapsed sections or images, and that the body carries no pasted output
-  beyond the one line that identifies the failure the branch addresses;
-  its list of what never goes in the body includes work diaries and
-  instructions to future readers or agents; `Not in this PR` also covers
-  what a review round removed from the branch; and ready to land includes
-  the branch sitting on the target's current tip, put there by rebase.
+  messages where preparation flattened a merge commit, which range-diff
+  misreports. `git diff <reviewed-head> HEAD` is never pasted: after a
+  rebase it mixes the target's drift with any change to the branch. Before,
+  the section asked for the output of both commands on every landing, and
+  on a flattened merge head one comment ran to 18 KB with thirty lines of
+  signal. Preparation applies to every method: reword and fold where the
+  branch's commits land, both optional under squash alone, with an
+  originally empty commit's message folded into a neighbour before a rebase
+  landing; rebase onto the target; re-apply what each kept merge carried;
+  rebind the evidence; sign the rewritten commits where they will land and
+  the repository keeps author signatures; push once. The guidance also says
+  essential facts go in visible prose, never in HTML comments, collapsed
+  sections or images, and that the body carries no pasted output beyond the
+  one line that identifies the failure the branch addresses; its list of
+  what never goes in the body includes work diaries and instructions to
+  future readers or agents; `Not in this PR` also covers what a review
+  round removed from the branch; and ready to land includes the branch
+  sitting on the target's current tip, put there by rebase.
 - The commit body has no `Not done:` line, and the hook no longer checks for
   one. What the request asked for and the branch does not deliver is a
   property of the pull request, recorded under `Not in this PR`; the

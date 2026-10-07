@@ -28,11 +28,11 @@ GitHub's *Rebase and merge* "always updates the committer information and create
 
 ## Pull requests from forks
 
-A fork's commits may not follow the format, and a squash rewrites them anyway, as a rebase may. Whatever the route, the prepared branch must become the pull request's head: push it to the contributor's branch where they allow edits from maintainers (GitHub permits this on user-owned forks), or ask them to push it. Pick one route and record it in guidance:
+A fork's commits may not follow the format, and a squash rewrites them anyway, as a rebase may. Whatever the route, the prepared branch must become the pull request's head, since the forge lands, or records as merged, that head: push it to the contributor's branch where they allow edits from maintainers (GitHub permits this on user-owned forks), or ask them to push it. Pick one route and record it in guidance:
 
 - **Rebase** the fork's commits as written when their messages are acceptable.
 - **Squash** with a message composed in the format when they are not. This is the usual route for drive-by contributions.
-- **Reword** the commits when their messages need it and the contributor allows edits; the forge then fast-forwards or rebases.
+- **Reword** the commits when their messages need it; the forge then lands them by the repository's method.
 
 ## Settings worth setting
 
