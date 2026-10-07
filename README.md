@@ -158,10 +158,12 @@ scheduler: stop running a job twice when a worker shuts down
   under `java`. So `internal/scheduler/worker.go` gives `scheduler`,
   `src/mypkg/cli.py` gives `cli`, `app/models/user.rb` gives `models`,
   `src/main/java/com/acme/billing/Invoice.java` gives `billing`, and a root
-  `README.md` gives `readme`. The rule depends only on the directory tree, so
-  an area does not change when unrelated files are added. Lower case, at most
-  24 characters. A change across everything uses `all`. Type words such as
-  `feat`, `fix` or `chore` are never areas. Derivation is a default; a
+  `README.md` gives `readme`. The rule reads only the paths and the tracked
+  directory tree, so the one change elsewhere that moves an area is a layout
+  directory gaining a second subdirectory. Lower case, at most 24
+  characters. A change across everything uses `all`. Type words such as
+  `feat`, `fix` or `chore` are never areas, and a bare `docs`, `test` or
+  `build` is one only when it names a directory. Derivation is a default; a
   repository it does not fit writes a path map. The hook prints the
   candidates: `python3 .git/hooks/commit-msg --areas`.
 - **Outcome** says what is now true. It begins in lower case, identifiers keep

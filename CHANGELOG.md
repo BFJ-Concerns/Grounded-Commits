@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- The area derivation's prose says what the hook does. A `docs/`, `test/`,
+  `build/` or `ci/` directory is an area; a file whose stem reads as one of
+  those, or as a change-type word, keeps its extension (`build.gradle`,
+  `fix.py`); a directory named for a change type gives `all`. Before, the
+  guidance said a directory of any of those names gave `all`, which the hook
+  never did. The README no longer claims an area never moves when unrelated
+  files are added: the only-subdirectory rule reads the tracked tree, so a
+  layout directory gaining a second subdirectory moves the area beneath it,
+  and the guidance now says so. The research note records why the derivation
+  goes beyond the report's one-line rule.
 - The pull-request guidance's *Before landing* comment is one sentence: the
   reviewed head, what the push did, and whether the landing tip's tree is
   identical to the reviewed head's, with each reworded commit named by

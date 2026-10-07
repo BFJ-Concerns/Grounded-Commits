@@ -27,17 +27,21 @@ configuring a repository's path map.
    that is not a letter or digit from both ends (`.github` gives `github`). A
    result longer than 24 characters is not an area: use `all` and name the
    directory in the body, or add a path-map entry.
-4. A result that is a change-type word (`feat`, `fix`, `perf`, `chore`,
-   `refactor`, `style`, `revert`), or that comes from a file and reads `ci`,
-   `docs`, `test`, `tests` or `build`, uses the file's full name instead
-   (`fix.py`, `build.gradle`); a directory of one of those names is `all`,
-   named in the body.
+4. A change-type word (`feat`, `fix`, `perf`, `chore`, `refactor`, `style`,
+   `revert`) is never an area, and `ci`, `docs`, `test`, `tests` and `build`
+   are areas only when they name a directory. A file whose stem reads as one
+   of those keeps its extension (`fix.py`, `build.gradle`); a directory named
+   for a change type gives `all`, named in the body; a `docs/` or `build/`
+   directory gives `docs` or `build`.
 
 So `internal/scheduler/worker.go` gives `scheduler`, `src/mypkg/cli.py` gives
 `cli`, `app/models/user.rb` gives `models`,
 `src/main/java/com/acme/billing/Invoice.java` gives `billing`,
 `packages/@acme/payments/src/charge.ts` gives `payments`,
 `.github/workflows/ci.yml` gives `github`, and a root `Cargo.toml` gives
-`cargo`. Derivation is a default: a repository it does not fit writes a path
-map, and the areas it lists (`areas` in `.grounded-commits.toml`) are always
-valid.
+`cargo`. The only-subdirectory rule reads the tracked tree, so
+`src/mypkg/cli.py` gives `cli` while `mypkg` is the only directory under `src`
+and `mypkg` once a second appears; that is the one way a change elsewhere
+moves an area. Derivation is a default: a repository it does not fit writes a
+path map, and the areas it lists (`areas` in `.grounded-commits.toml`) are
+always valid.
