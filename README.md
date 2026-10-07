@@ -132,10 +132,11 @@ work on a branch → commits carry the record → the PR body guides review
 - **The pull request is for review.** Its body helps whoever is reviewing now,
   and is written so that it can be thrown away.
 - **Landing is your choice.** Fast-forward lands the prepared tip unchanged and
-  is the default; rebase keeps the messages but not the hashes or signatures,
-  and is the fallback a repository chooses once where its forge cannot
-  fast-forward; merge commits and squashes work with a little configuration.
-  [`guidance/landing.md`](guidance/landing.md) has the table.
+  is the default; rebase keeps the messages, on GitHub at the cost of the
+  hashes and your signatures, and is the fallback a repository chooses once
+  where its forge cannot fast-forward; merge commits and squashes work with a
+  little configuration. [`guidance/landing.md`](guidance/landing.md) has the
+  table.
 
 ## Commit messages
 
@@ -246,7 +247,8 @@ Breaking-Change: <what breaks>; <what the consumer must do>
   says the bug was shown present at that commit and absent at its parent.
   `git blame` finds the last change to a line, not where a bug began. The key
   is not called `Fixes:` because that word is an issue-closing keyword on
-  GitHub, GitLab and Forgejo by default, and a slip from a hash to an issue link would close the issue on some forges.
+  GitHub, GitLab and Forgejo by default, and a slip from a hash to an issue
+  link would close the issue on some forges.
 
 Why trailers? Git can pull them out by key without reading the body, for example
 `git log --format='%(trailers:key=Verified,valueonly)'`. Nothing can pull
@@ -363,23 +365,25 @@ Nothing in it repeats a commit's reasoning, lists files or claims a result.
 
 The landing guide is optional, but knowing what your merge method does to the
 commit messages is not, because they are the record. The default is
-**fast-forward**: the branch is folded, reworded where review changed it, rebased onto
-the target, pushed once with a one-sentence comment saying whether the tip's
-tree and messages still match the reviewed head, and the target moves to its
-tip, so the prepared tip lands unchanged, hashes and signatures included.
+**fast-forward**: the branch is folded, reworded where review changed it,
+rebased onto the target, pushed once with a one-sentence comment saying whether
+the tip's tree and messages still match the reviewed head, and the target moves
+to its tip, so the prepared tip lands unchanged, hashes and signatures included.
 GitLab, Forgejo, Gitea and plain Git offer it as a setting; on GitHub it is a
 direct push of the approved tip. **Rebase** is the fallback a repository chooses
-once where its landing identity may not push: the forge replays the commits,
-keeping their messages, all but an originally empty commit's on GitHub, but not
-their hashes or your signatures. Squash creates new commits too, so a repository
-that signs its commits lands by fast-forward or merge commit, never by rebase.
-Merge commits work when the merge message is set to the pull-request title only.
-Squashes work when the landing agent composes the squash message in the commit
-format from the branch's commits and supplies it explicitly, so the pull-request
-body never becomes a commit message.
+once where its landing identity may not push: on GitHub the forge replays the
+commits as new objects, keeping their messages, all but an originally empty
+commit's, but not their hashes or your signatures; Forgejo and Gitea rewrite
+only a branch that is behind or one a merge template amends. Squash creates new
+commits everywhere, so a repository that signs its commits lands by fast-forward
+or merge commit. Merge commits work when the merge message is set to the
+pull-request title only. Squashes work when the landing agent composes the
+squash message in the commit format from the branch's commits and supplies it
+explicitly, so the pull-request body never becomes a commit message.
 
-Whatever the method, four things hold: under fast-forward, rebase and merge
-commits every message lands as written or as deliberately reworded, and under
+Whatever the method, four things hold: under fast-forward and merge commits
+every message lands as written or as deliberately reworded, under rebase the
+same except a commit GitHub drops for having been empty to begin with, and under
 squash the one landed message is composed from them, never taken from the
 forge's default; nothing from the pull-request body enters history; the landing
 comment says whether the landed tip still matches the reviewed head; and issues

@@ -178,7 +178,8 @@ Breaking-Change: <what breaks>; <what the consumer must do>
   parent — by bisect, or by running the reproducer at both. Blame shows a
   line's last change, not where a defect began. Never an issue number: the key
   is not `Fixes:` because that word is an issue-closing keyword on GitHub,
-  GitLab and Forgejo by default, and a slip from a hash to an issue link would close the issue on some forges.
+  GitLab and Forgejo by default, and a slip from a hash to an issue link
+  would close the issue on some forges.
 - **`Breaking-Change:`** goes on every commit that changes a public interface
   incompatibly.
 - Keys others write (`Co-Authored-By`, `Change-Id`, `Reviewed-on`) sit in the

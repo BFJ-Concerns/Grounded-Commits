@@ -127,20 +127,21 @@ commits as you make them where the repository keeps author signatures
 (`commit.gpgsign`, or `-S` on the rebase), since a rewrite replaces the signed
 objects, and push once; a branch that contains merge commits keeps them with
 `--rebase-merges` for a fast-forward landing and is deliberately flattened for
-a rebase landing, since a forge-side rebase flattens them anyway. If it will
-land by squash or merge commit, folding is optional, a merge commit keeps the
-branch's own merges, and the landed message is supplied explicitly: for a
-squash, one message composed in the commit format from the branch's commits,
-with evidence rebound to the landed tree; for a merge commit, the pull-request
-title alone. Never the forge's default, and never this body. A pull request
-from a fork lands by the route the repository's guidance records — rebased as
-written, squashed with a composed message, or reworded on the contributor's
-branch only where they allow edits from maintainers; with no route recorded,
-ask the user. Which method the repository uses, what each does to the commits
-and the forge settings for it are in `references/landing.md`, relative to this
-skill's directory: fast-forward is the default and rebase the fallback a
-repository chooses once where its landing identity may not push to the target,
-which lands new commits without your signatures, as a squash does.
+a rebase landing, since a forge-side rebase of a branch that is behind
+flattens them. If it will land by squash or merge commit, folding is optional,
+a merge commit keeps the branch's own merges, and the landed message is
+supplied explicitly: for a squash, one message composed in the commit format
+from the branch's commits, with evidence rebound to the landed tree; for a
+merge commit, the pull-request title alone. Never the forge's default, and
+never this body. A pull request from a fork lands by the route the
+repository's guidance records — rebased as written, squashed with a composed
+message, or reworded on the contributor's branch only where they allow edits
+from maintainers; with no route recorded, ask the user. Which method the
+repository uses, what each does to the commits and the forge settings for it
+are in `references/landing.md`, relative to this skill's directory:
+fast-forward is the default and rebase the fallback a repository chooses once
+where its landing identity may not push to the target, which on GitHub lands
+new commits without your signatures, as a squash does everywhere.
 
 Either way, before landing, comment with one sentence: the reviewed head's
 hash, what happened since approval (folded, reworded, rebased, or nothing),
@@ -167,6 +168,8 @@ depends on the branch:
   the target's drift in context lines and nothing else, a fix-up folded in, a
   hunk dropped, a message reworded; attach it.
 
+For a flattened merge, the two comparisons:
+
 ```
 diff <(git diff $(git merge-base <target> <reviewed-head>) <reviewed-head>) <(git diff <target> HEAD)
 diff <(git log --format=%B <target>..<reviewed-head>) <(git log --format=%B <target>..HEAD)
@@ -174,15 +177,15 @@ diff <(git log --format=%B <target>..<reviewed-head>) <(git log --format=%B <tar
 
 A branch that keeps its merge commits (`--rebase-merges`) passes
 `--remerge-diff` to every `git range-diff` above, or changes to the merge
-commits' messages go unreported. Under squash or a merge commit, the
-comparison is between the reviewed head and the branch tip that will be
-squashed or merged, and the composed or generated landing message is read back
-after landing as `landing.md` describes. An attachment sits inside a collapsed
-block, a `<details>` element whose `<summary>` names the command, with a blank
-line after the summary so the fenced block inside renders, which GitHub and
-Forgejo both need. Never paste `git diff <reviewed-head> HEAD`: after a rebase
-it mixes the target's drift with any change to the branch and cannot tell them
-apart. For example:
+commits' messages go unreported. Under squash or a merge commit, the same
+comparisons cover the branch tip that will be squashed or merged, which sits
+on the target's current tip like any other, and the composed or generated
+landing message is read back after landing as `landing.md` describes. An
+attachment sits inside a collapsed block, a `<details>` element whose
+`<summary>` names the command, with a blank line after the summary so the
+fenced block inside renders, which GitHub and Forgejo both need. Never paste
+`git diff <reviewed-head> HEAD`: after a rebase it mixes the target's drift
+with any change to the branch and cannot tell them apart. For example:
 
 ```
 Reviewed head 3e7a1c5: folded the two fix-ups into their commits, main had not moved, tree identical; "stream CSV exports" reworded with the Verified line for the re-run, no other message changed (range-diff attached).
@@ -191,13 +194,12 @@ Reviewed head 3e7a1c5: folded the two fix-ups into their commits, main had not m
 Re-run the checks on the new tip or record the gap with `Not-verified:`. Ready
 to land means: no open question in the body, `Not in this PR` current, every
 commit message true of its folded contents, the forge not showing draft state,
-for a fast-forward or rebase landing the branch still on the target's current
-tip, put there by rebase and not by merging the target in, the required
-approvals present, and the required checks passing on the exact head that will
-land. Where the landing method rewrote the commits, read the landed messages
-back (`git log --format=%B <range>`) and compare them with what was pushed.
-After landing, close each fully delivered issue by hand, in a comment naming
-the landed commit.
+the branch still on the target's current tip, put there by rebase and not by
+merging the target in, the required approvals present, and the required checks
+passing on the exact head that will land. Where the landing method rewrote the
+commits, read the landed messages back (`git log --format=%B <range>`) and
+compare them with what was pushed. After landing, close each fully delivered
+issue by hand, in a comment naming the landed commit.
 
 ## Examples
 

@@ -135,6 +135,8 @@ CASES = [
      "all: export the parser from the crate root\n\nBody.\n\nVerified: final contents; cargo test; 9 passed\n", "clean", {}),
     ("crate root module is not the area src", ["src/lib.rs"], ["src/lib.rs", "src/parser.rs", "Cargo.toml"],
      "src: export the parser from the crate root\n\nBody.\n\nVerified: final contents; cargo test; 9 passed\n", "does not come from the changed paths", {}),
+    ("index.mts stands for a layout directory and gives all", ["src/index.mts"], ["src/index.mts", "src/a.ts", "package.json"],
+     "all: export the public surface from the package root\n\nBody.\n\nVerified: final contents; npm test; 4 passed\n", "clean", {}),
     ("tests package under a layout directory gives all", ["src/tests/__init__.py"],
      ["src/tests/__init__.py", "src/tests/test_a.py", "src/pkg/a.py", "README.md"],
      "all: share the fixtures across the test package\n\nBody.\n\nVerified: final contents; python3 -m pytest; 3 passed\n", "clean", {}),

@@ -73,7 +73,8 @@ COLLECTION_WRAPPERS = {"packages", "apps", "crates", "modules", "services", "cmd
 # directory is layout (a wrapper, or test/tests directly inside one), which is
 # never an area. Matched by full lower-case file name.
 DIRECTORY_FILES = {"__init__.py", "__main__.py", "mod.rs", "lib.rs", "main.rs", "main.go",
-                   "index.js", "index.ts", "index.jsx", "index.tsx", "index.mjs", "index.cjs"}
+                   "index.js", "index.ts", "index.jsx", "index.tsx", "index.mjs", "index.cjs",
+                   "index.mts", "index.cts"}
 
 REVERT_RE = re.compile(r'^(Revert|Reapply) ".+"$')
 AUTOSQUASH_PREFIXES = ("fixup! ", "squash! ", "amend! ")
