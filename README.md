@@ -132,11 +132,11 @@ work on a branch → commits carry the record → the PR body guides review
 - **The pull request is for review.** Its body helps whoever is reviewing now,
   and is written so that it can be thrown away.
 - **Landing is your choice.** Fast-forward lands the prepared tip unchanged and
-  is the default; rebase keeps the messages, on GitHub at the cost of the
-  hashes and your signatures, and is the fallback a repository chooses once
-  where its forge cannot fast-forward; merge commits and squashes work with a
-  little configuration. [`guidance/landing.md`](guidance/landing.md) has the
-  table.
+  is the default; rebase keeps the messages, except an originally empty
+  commit's on GitHub, where it also costs the hashes and your signatures, and
+  is the fallback a repository chooses once where its forge cannot
+  fast-forward; merge commits and squashes work with a little configuration.
+  [`guidance/landing.md`](guidance/landing.md) has the table.
 
 ## Commit messages
 

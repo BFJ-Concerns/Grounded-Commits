@@ -117,31 +117,31 @@ narration, repetition or assurance.
 
 ## Before landing
 
-Once review is approved, record the reviewed head's hash. Then, if the branch
-will land by a method that keeps its commits (fast-forward or rebase), fold
-the fix-ups into the commits they correct, reword any message the review
-changed, rebase onto the target, rebind the evidence of every commit the
-rewrite produced — not only the reworded ones, since folding and rebasing
-change trees (grounded-commits, *After a rewrite*) — sign the rewritten
-commits as you make them where the repository keeps author signatures
-(`commit.gpgsign`, or `-S` on the rebase), since a rewrite replaces the signed
-objects, and push once; a branch that contains merge commits keeps them with
-`--rebase-merges` for a fast-forward landing and is deliberately flattened for
-a rebase landing, since a forge-side rebase of a branch that is behind
-flattens them. If it will land by squash or merge commit, folding is optional,
-a merge commit keeps the branch's own merges, and the landed message is
-supplied explicitly: for a squash, one message composed in the commit format
-from the branch's commits, with evidence rebound to the landed tree; for a
-merge commit, the pull-request title alone. Never the forge's default, and
-never this body. A pull request from a fork lands by the route the
-repository's guidance records — rebased as written, squashed with a composed
-message, or reworded on the contributor's branch only where they allow edits
-from maintainers; with no route recorded, ask the user. Which method the
-repository uses, what each does to the commits and the forge settings for it
-are in `references/landing.md`, relative to this skill's directory:
-fast-forward is the default and rebase the fallback a repository chooses once
-where its landing identity may not push to the target, which on GitHub lands
-new commits without your signatures, as a squash does everywhere.
+Once review is approved, record the reviewed head's hash. Then, whatever the
+method: where it keeps the commits (fast-forward or rebase), fold the fix-ups
+into the commits they correct and reword any message the review changed,
+folding being optional under squash or a merge commit; rebase onto the target;
+rebind the evidence of every commit the rewrite produced, not only the
+reworded ones, since folding and rebasing change trees (grounded-commits,
+*After a rewrite*); sign the rewritten commits as you make them where the
+repository keeps author signatures (`commit.gpgsign`, or `-S` on the rebase),
+since a rewrite replaces the signed objects; and push once. A branch that
+contains merge commits keeps them with `--rebase-merges` for a fast-forward or
+merge-commit landing and is deliberately flattened for a rebase landing, since
+that route lands only a linear branch and GitHub's replay rewrites every
+commit. Under squash or a merge commit the landed message is supplied
+explicitly: for a squash, one message composed in the commit format from the
+branch's commits, with evidence rebound to the landed tree; for a merge
+commit, the pull-request title alone. Never the forge's default, and never
+this body. A pull request from a fork lands by the route the repository's
+guidance records: rebased as written, squashed with a composed message, or
+reworded on the contributor's branch only where they allow edits from
+maintainers; with no route recorded, ask the user. Which method the repository
+uses, what each does to the commits and the forge settings for it are in
+`references/landing.md`, relative to this skill's directory: fast-forward is
+the default and rebase the fallback a repository chooses once where its
+landing identity may not push to the target, which on GitHub lands new commits
+without your signatures, as a squash does everywhere.
 
 Either way, before landing, comment with one sentence: the reviewed head's
 hash, what happened since approval (folded, reworded, rebased, or nothing),
