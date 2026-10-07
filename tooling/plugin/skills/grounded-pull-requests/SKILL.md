@@ -117,21 +117,24 @@ narration, repetition or assurance.
 ## Before landing
 
 Once review is approved, record the reviewed head's hash. Then, if the branch
-will land by a method that keeps its commits (rebase or fast-forward), fold
+will land by a method that keeps its commits (fast-forward or rebase), fold
 the fix-ups into the commits they correct, reword any message the review
 changed, rebase onto the target, rebind the evidence of every commit the
 rewrite produced — not only the reworded ones, since folding and rebasing
 change trees (grounded-commits, *After a rewrite*) — and push once; a branch
 that contains merge commits is rebased with `--rebase-merges` or deliberately
-flattened. If it will land by squash or merge commit, folding is optional,
-and the landed message is supplied explicitly: for a squash, one message
-composed in the commit format from the branch's commits, with evidence
-rebound to the landed tree; for a merge commit, the pull-request title alone.
-Never the forge's default, and never this body. A pull request from a fork
-lands by the route the repository's guidance records — rebased as written,
-squashed with a composed message, or reworded on the contributor's branch
-only where they allow edits from maintainers; with no route recorded, ask
-the user.
+flattened. If it will land by squash or merge commit, folding is optional, and
+the landed message is supplied explicitly: for a squash, one message composed
+in the commit format from the branch's commits, with evidence rebound to the
+landed tree; for a merge commit, the pull-request title alone. Never the
+forge's default, and never this body. A pull request from a fork lands by the
+route the repository's guidance records — rebased as written, squashed with a
+composed message, or reworded on the contributor's branch only where they
+allow edits from maintainers; with no route recorded, ask the user. Which
+method the repository uses, what each does to the commits and the forge
+settings for it are in `references/landing.md`, relative to this skill's
+directory: fast-forward is the default and rebase the fallback where the forge
+cannot fast-forward.
 
 Either way, if anything was pushed after approval, comment once the push is
 up. The forge records that the head moved, not whether anything changed: its
@@ -174,7 +177,7 @@ Reviewed head 3e7a1c5: folded the two fix-ups into their commits, main had not m
 Re-run the checks on the new tip or record the gap with `Not-verified:`. Ready
 to land means: no open question in the body, `Not in this PR` current, every
 commit message true of its folded contents, the forge not showing draft state,
-for a rebase or fast-forward landing the branch still on the target's current
+for a fast-forward or rebase landing the branch still on the target's current
 tip, the required approvals present, and the required checks passing on the
 exact head that will land. Where the landing method rewrote the commits, read
 the landed messages back (`git log --format=%B <range>`) and compare them with

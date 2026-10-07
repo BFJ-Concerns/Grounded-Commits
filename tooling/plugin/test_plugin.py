@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Consistency cases for the agent plugin: the bundled checker is the
-reference hook, and every manifest carries the release version and points at
-this plugin. Run: python3 test_plugin.py"""
+reference hook, the bundled landing reference is the landing guidance, and
+every manifest carries the release version and points at this plugin. Run: python3 test_plugin.py"""
 
 import json
 import os
@@ -15,6 +15,8 @@ PLUGIN_MANIFESTS = [os.path.join(HERE, ".claude-plugin", "plugin.json"),
                     os.path.join(HERE, ".codex-plugin", "plugin.json")]
 CLAUDE_MARKETPLACE = os.path.join(ROOT, ".claude-plugin", "marketplace.json")
 CODEX_MARKETPLACE = os.path.join(ROOT, ".agents", "plugins", "marketplace.json")
+LANDING_REFERENCE = os.path.join(HERE, "skills", "grounded-pull-requests", "references", "landing.md")
+LANDING_GUIDANCE = os.path.join(ROOT, "guidance", "landing.md")
 
 
 def load(path):
@@ -36,6 +38,10 @@ def case_bundled_hook_matches_reference():
     return read_bytes(BUNDLED_HOOK) == read_bytes(REFERENCE_HOOK) and os.access(BUNDLED_HOOK, os.X_OK)
 
 
+def case_landing_reference_matches_guidance():
+    return read_bytes(LANDING_REFERENCE) == read_bytes(LANDING_GUIDANCE)
+
+
 def case_manifests_carry_release_version():
     return all(load(path)["version"] == release_version() for path in PLUGIN_MANIFESTS)
 
@@ -54,6 +60,7 @@ def case_marketplaces_point_at_plugin():
 
 CASES = [
     ("bundled checker is the reference hook, executable", case_bundled_hook_matches_reference),
+    ("bundled landing reference is the landing guidance", case_landing_reference_matches_guidance),
     ("plugin manifests carry the VERSION release", case_manifests_carry_release_version),
     ("plugin manifests share one name", case_manifests_share_name),
     ("both marketplaces list this plugin", case_marketplaces_point_at_plugin),

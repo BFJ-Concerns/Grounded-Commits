@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Fast-forward is the default landing method, as the research decided, and
+  rebase the stated fallback where the forge cannot fast-forward: on GitHub,
+  where a direct push of the approved tip to the target is not permitted.
+  Rebase keeps the messages but creates new commits, so hashes and
+  signatures are lost, and the guidance says so wherever the methods are
+  listed. The plugin's pull-request skill bundles the landing guidance as
+  `references/landing.md`, kept byte-identical to `guidance/landing.md` by
+  the plugin test.
 - The pull-request guidance's *Before landing* comment is one sentence: the
   reviewed head, what the push did, and whether the landing tip's tree is
   identical to the reviewed head's, with each reworded commit named by
