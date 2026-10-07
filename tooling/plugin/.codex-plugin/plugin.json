@@ -1,6 +1,6 @@
 {
   "name": "grounded-commits",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Write and check commit messages, and write pull-request descriptions, in the Grounded Commits format.",
   "author": {
     "name": "BFJ Concerns"

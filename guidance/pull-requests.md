@@ -1,6 +1,6 @@
 # Grounded Commits: pull requests
 
-Format version 0.1.1. Copy this file, or the parts you need, into your repository's guidance for agents. It replaces the pull-request template your agent tool ships with. It pairs with `commit-messages.md`, which defines the subject grammar, the header profile and the trailers it refers to, and optionally with `landing.md`.
+Format version 0.2.0. Copy this file, or the parts you need, into your repository's guidance for agents. It replaces the pull-request template your agent tool ships with. It pairs with `commit-messages.md`, which defines the subject grammar, the header profile and the trailers it refers to, and optionally with `landing.md`.
 
 The commits are the record. The pull-request body is a short brief for whoever is reviewing now, person or bot, and it is written so that it can be thrown away: nothing in it belongs in history, whichever way the branch lands.
 

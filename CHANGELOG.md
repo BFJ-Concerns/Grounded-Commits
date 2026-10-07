@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-07
 
+- The pull-request guidance's *Before landing* section says to rebind the
+  evidence of every commit a pre-landing rewrite produced, not only the
+  reworded ones, matching the commit guidance's *After a rewrite*: folding
+  and rebasing change trees even where the message is unchanged. It also
+  says to pass `--remerge-diff` to the landing comment's `git range-diff`
+  when the branch keeps merge commits, which the command otherwise ignores.
 - The hook checks a draft message against an existing commit without
   committing it: `--message-file draft.txt --rev HEAD` runs the same check
   `--rev HEAD` runs on the commit's own message, so a rewrite can be checked
