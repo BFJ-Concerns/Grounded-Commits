@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- The hook checks a draft message against an existing commit without
+  committing it: `--message-file draft.txt --rev HEAD` runs the same check
+  `--rev HEAD` runs on the commit's own message, so a rewrite can be checked
+  before the amend or reword that records it. Before, a draft could only be
+  checked against hand-listed `--paths`, which skipped the lookups of
+  `Introduced-by:` hashes, or by committing it.
+
 ## 0.1.1 — 2026-10-06
 
 - The hook no longer reads every upper-case word followed by a hyphen and

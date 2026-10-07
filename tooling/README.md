@@ -27,7 +27,15 @@ Everyday use:
 python3 .git/hooks/commit-msg --areas               # areas the staged change could use
 python3 .git/hooks/commit-msg --rev HEAD            # check an existing commit
 python3 .git/hooks/commit-msg --range main..HEAD    # check a branch, for CI or before landing
+python3 .git/hooks/commit-msg --message-file draft.txt --rev HEAD
+                                                    # check a draft against a commit's changes
 ```
+
+The last form checks a draft before it is committed: write the replacement
+message to a file and check it against the commit it is for, then amend or
+reword once it is clean. The draft is checked exactly as `--rev` checks the
+commit's own message, with the same paths and the same lookups of
+`Introduced-by:` hashes.
 
 A local hook sees only commits made where it is installed and is bypassed by
 `--no-verify`; the `--range` form is what a landing step or CI runs.

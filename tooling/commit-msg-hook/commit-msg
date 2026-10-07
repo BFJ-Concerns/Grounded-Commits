@@ -18,6 +18,10 @@ Usage:
   commit-msg --range <base>..<head>  check every commit in a range (CI, landing)
   commit-msg --areas [--rev <rev>]   print the candidate areas for the staged
                                      change, or for <rev>
+  commit-msg --message-file F --rev <rev>
+                                     check a draft message against an existing
+                                     commit's changes without committing it
+                                     (before an amend or a rebase reword)
   commit-msg --message-file F --paths a/b.c d/e.f [--tracked ...]
                                      check a message against given paths
 
@@ -586,15 +590,26 @@ def check_message(message, paths, config, tracked=(), repo=None, merge=False, pu
 
 # --- entry points ------------------------------------------------------------
 
-def check_rev(repo, rev, config):
+def rev_paths(repo, rev):
+    """(sha, paths, pure_rename, merge) for an existing commit; a merge's paths
+    are its conflict resolutions."""
     sha = git("rev-parse", "--verify", f"{rev}^{{commit}}", repo=repo).strip()
-    message = git("show", "-s", "--format=%B", sha, repo=repo)
-    merge = is_merge(repo, sha)
-    if merge:
-        paths, pure = resolution_paths(repo, sha), False
-    else:
-        paths, pure = commit_paths(repo, sha)
-    return sha, message, check_message(message, paths, config, tracked_files(repo, sha), repo, merge, pure)
+    if is_merge(repo, sha):
+        return sha, resolution_paths(repo, sha), False, True
+    paths, pure = commit_paths(repo, sha)
+    return sha, paths, pure, False
+
+
+def check_against_rev(repo, rev, message, config):
+    """Findings for `message` as the message of the commit at `rev`."""
+    sha, paths, pure, merge = rev_paths(repo, rev)
+    return sha, check_message(message, paths, config, tracked_files(repo, sha), repo, merge, pure)
+
+
+def check_rev(repo, rev, config):
+    message = git("show", "-s", "--format=%B", f"{rev}^{{commit}}", repo=repo)
+    sha, findings = check_against_rev(repo, rev, message, config)
+    return sha, message, findings
 
 
 def strip_comments(text, comment_char):
@@ -623,10 +638,10 @@ def report(label, message, findings):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=f"Grounded Commits {FORMAT_VERSION} commit-msg hook")
     parser.add_argument("message_file", nargs="?", help="message file (Git hook mode)")
-    parser.add_argument("--rev", help="check an existing commit instead")
+    parser.add_argument("--rev", help="check an existing commit, or a --message-file draft against its changes")
     parser.add_argument("--range", dest="rev_range", help="check every commit in <base>..<head>")
     parser.add_argument("--areas", action="store_true", help="print the candidate areas and exit")
-    parser.add_argument("--message-file", dest="explicit_file", help="message to check against --paths")
+    parser.add_argument("--message-file", dest="explicit_file", help="message to check against --rev or --paths")
     parser.add_argument("--paths", nargs="*", default=None, help="changed paths for --message-file")
     parser.add_argument("--tracked", nargs="*", default=None, help="tracked paths for --message-file")
     parser.add_argument("--repo", default=None, help="repository directory (default: current)")
@@ -637,16 +652,24 @@ def main(argv=None):
         if args.explicit_file:
             with open(args.explicit_file, encoding="utf-8", errors="replace") as handle:
                 message = handle.read()
-            paths = args.paths or []
-            tracked = args.tracked if args.tracked is not None else paths
-            findings = check_message(message, paths, config, tracked, None)
-            label = "message"
+            if args.rev:
+                if args.paths is not None or args.tracked is not None:
+                    raise CheckError("--rev supplies the paths; it cannot be combined with --paths or --tracked")
+                if not root:
+                    raise CheckError("not inside a git repository")
+                sha, findings = check_against_rev(root, args.rev, message, config)
+                label = f"message for {sha[:12]}"
+            else:
+                paths = args.paths or []
+                tracked = args.tracked if args.tracked is not None else paths
+                findings = check_message(message, paths, config, tracked, None)
+                label = "message"
         elif args.areas:
             if not root:
                 raise CheckError("not inside a git repository")
             if args.rev:
-                paths = resolution_paths(root, args.rev) if is_merge(root, args.rev) else commit_paths(root, args.rev)[0]
-                tracked = tracked_files(root, args.rev)
+                sha, paths, _, _ = rev_paths(root, args.rev)
+                tracked = tracked_files(root, sha)
             else:
                 paths = staged_paths(root, "")[0]
                 tracked = tracked_files(root)

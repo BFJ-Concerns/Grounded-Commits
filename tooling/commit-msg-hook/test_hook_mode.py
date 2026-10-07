@@ -169,6 +169,57 @@ def _(repo):
     return hook(repo, "--areas", "--rev", "HEAD").stdout.split() == ["api"] and hook(repo, "--rev", "HEAD").returncode == 0
 
 
+@case("--message-file --rev checks a draft against a commit's changes without committing it")
+def _(repo):
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write("all: initial import of the scheduler service\n\nThe requirement is a starting point.\n")
+    bare = hook(repo, "--message-file", draft, "--rev", "HEAD")
+    with open(draft, "w") as handle:
+        handle.write("billing: initial import of the scheduler service\n\nThe requirement is a starting point.\n\n" + EVIDENCE)
+    wrong_area = hook(repo, "--message-file", draft, "--rev", "HEAD")
+    with open(draft, "w") as handle:
+        handle.write("all: initial import of the scheduler service\n\nThe requirement is a starting point.\n\n" + EVIDENCE)
+    clean = hook(repo, "--message-file", draft, "--rev", "HEAD")
+    return (bare.returncode == 1 and "no `Verified:`" in bare.stderr and "message for " in bare.stderr
+            and wrong_area.returncode == 1 and "area" in wrong_area.stderr
+            and clean.returncode == 0 and git(repo, "log", "--oneline").count("\n") == 1)
+
+
+@case("--message-file --rev resolves Introduced-by against the repository")
+def _(repo):
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write("all: initial import of the scheduler service\n\nThe requirement is a starting point.\n\n"
+                     + EVIDENCE + 'Introduced-by: 0123456789ab ("scheduler: nothing")\n')
+    r = hook(repo, "--message-file", draft, "--rev", "HEAD")
+    return r.returncode == 1 and "not a commit in this repository" in r.stderr
+
+
+@case("--message-file --rev on a merge checks the draft against its resolutions")
+def _(repo):
+    git(repo, "checkout", "-q", "-b", "side"); write(repo, "internal/api/handler.go", "s\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: side\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    git(repo, "checkout", "-q", "main"); write(repo, "internal/api/handler.go", "m\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: main\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    run(repo, "git", "merge", "--no-ff", "side"); write(repo, "internal/api/handler.go", "r\n"); git(repo, "add", "-A")
+    assert commit(repo, "Merge branch 'side'\n\nResolved the handler.\n\n" + EVIDENCE).returncode == 0
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write("Merge branch 'side'\n")
+    r = hook(repo, "--message-file", draft, "--rev", "HEAD")
+    return r.returncode == 1 and "body is missing" in r.stderr
+
+
+@case("--message-file --rev refuses --paths, exit 2")
+def _(repo):
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write(GOOD)
+    r = hook(repo, "--message-file", draft, "--rev", "HEAD", "--paths", "go.mod")
+    return r.returncode == 2 and "cannot be combined" in r.stderr
+
+
 @case("a generated revert is caught by --rev until it carries evidence")
 def _(repo):
     git(repo, "revert", "--no-edit", "HEAD")
