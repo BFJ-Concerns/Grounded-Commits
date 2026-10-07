@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The commit body has no `Not done:` line, and the hook no longer checks for
+  one. What the request asked for and the branch does not deliver is a
+  property of the pull request, recorded under `Not in this PR`; the
+  pull-request research rejected a per-commit line on that ground, and the
+  commit guidance had added one without recording a reason. A commit's own
+  limits stay in its body as prose.
 - The area derivation's prose says what the hook does. A `docs/`, `test/`,
   `build/` or `ci/` directory is an area; a file whose stem reads as one of
   those, or as a change-type word, keeps its extension (`build.gradle`,

@@ -193,9 +193,6 @@ Wrapped at 72 columns, no headings, in this order:
    weighed, one per sentence.
 4. Optionally, **limits.** A breaking change names what breaks and how to
    migrate, or says the migration is unknown.
-5. Optionally, **`Not done:`** what the request asked for that this commit does
-   not deliver, with the issue that tracks it, "not planned" or "no issue
-   exists".
 
 Every reason must trace to something the writer actually has: an observation, a
 reference, or its instructions. When the writer does not know why, it writes
@@ -486,7 +483,7 @@ not included.
 
 The finished guidance under [`guidance/`](guidance/) departs from the research
 drafts in a few places, each noted at the top of the draft it supersedes: the
-`Introduced-by:` key, the area derivation, the optional `Not done:` line, the
+`Introduced-by:` key, the area derivation, the
 pull-request lead and `Try` wording, and landing as an optional part with
 rebase as the default rather than a fast-forward push. The pull-request report
 also says its cited reviewer experiment had no result for commercial

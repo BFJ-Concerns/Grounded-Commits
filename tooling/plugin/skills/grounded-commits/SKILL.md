@@ -97,9 +97,6 @@ Prose wrapped at 72 columns, no headings, in this order:
    actually weighed per sentence.
 4. Optional: **limits**. A compatibility break names the interface and the
    migration, or says the migration is unknown.
-5. Optional: **`Not done: <what was asked and is not delivered>; <issue URL,
-   "not planned" or "no issue exists">`**, whenever the request behind this
-   commit asked for more than it delivers.
 
 Every reason traces to something you observed, an issue or requirement you
 were pointed at, or an instruction in your brief. If the only reason you hold

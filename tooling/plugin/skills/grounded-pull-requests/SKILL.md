@@ -67,7 +67,7 @@ followed by filler is a defect.
    delivers, or when something a reviewer would expect is deliberately
    absent). Each item with its disposition: the URL of the issue that tracks
    it, "not planned", or "no issue exists". Invent nothing. This describes the
-   branch as a whole: a commit's `Not done:` item that a later commit on the
+   branch as a whole: what one commit leaves undone and a later commit on the
    branch delivers does not appear.
 
 Soft upper bounds: one commit, about 50 words; a series, 150; several

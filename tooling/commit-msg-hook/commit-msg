@@ -98,7 +98,6 @@ FILLER = {"passed", "pass", "ok", "okay", "n/a", "na", "none", "tests pass", "te
           "success", "succeeded", "done", "fine", "-", "yes", "all good", "works"}
 NOT_VERIFIED_RE = re.compile(r"^(?P<scope>[^;]+?)\s*;\s*(not run|result unavailable):\s*(?P<reason>.+)$")
 INTRODUCED_BY_RE = re.compile(r'^(?P<hash>[0-9a-fA-F]{12,64}) \("(?P<subject>.+)"\)$')
-NOT_DONE_RE = re.compile(r"^Not done: .+; (https?://\S+|not planned|no issue exists)\.?$")
 HONEST_ROUTE = ("; if you have no such evidence, write `Not-verified: <scope>; not run: <reason>` "
                 "instead, and never supply an outcome from memory")
 
@@ -469,10 +468,6 @@ def check_body(lines, groups, trailer_block):
                 key = line.split(":", 1)[0]
                 findings.append(f"`{key}:` on line {start + offset + 1} is outside the final trailer block, so Git "
                                 "does not read it; keep every trailer in one last paragraph with no blank line inside")
-        joined = " ".join(l.strip() for l in group)
-        if joined.startswith("Not done:") and not NOT_DONE_RE.match(joined):
-            findings.append("`Not done:` needs `<what was asked and is not delivered>; <issue URL, "
-                            "\"not planned\" or \"no issue exists\">`, as its own paragraph")
     return findings
 
 

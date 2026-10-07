@@ -28,7 +28,6 @@ Prose wrapped at 72 columns, no headings, in this order:
 2. **Change and approach**: what now happens, as behaviour, and why this way. Keep the symptom and the resulting behaviour even where the diff shows them. Never inventory the edits; name a directory or file only where the subject's area could not.
 3. Optional: **`Considered and rejected:`** followed by one alternative you actually weighed per sentence.
 4. Optional: **limits**. A compatibility break names the interface and the migration, or says the migration is unknown.
-5. Optional: **`Not done: <what was asked and is not delivered>; <issue URL, "not planned" or "no issue exists">`**, whenever the request behind this commit asked for more than it delivers.
 
 Every reason traces to something you observed, an issue or requirement you were pointed at, or an instruction in your brief. If the only reason you hold is that you were asked, say so and say by whom. A diagnosis someone handed you stays a hypothesis until you observe it. Without the task record behind a change, write "reason not available to the writer" rather than reconstructing a motive. About ten lines is plenty; never cut an identifier or a migration detail to get there.
 
