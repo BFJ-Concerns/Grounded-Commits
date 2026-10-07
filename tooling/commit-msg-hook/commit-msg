@@ -69,9 +69,9 @@ TEST_UNDER_LAYOUT = {"test", "tests"}
 JVM_LAYOUT = {"java", "kotlin", "scala"}
 CODE_HOSTS = {"github", "gitlab", "bitbucket", "codeberg", "sourceforge"}
 COLLECTION_WRAPPERS = {"packages", "apps", "crates", "modules", "services", "cmd", "pkg", "internal"}
-# A file that stands for its directory yields the directory's name; stems are
-# compared with their underscores stripped, so `__init__` matches `init`.
-DIRECTORY_FILES = {"init", "mod", "index", "lib", "main"}
+# A file that stands for its directory yields the directory's name, unless that
+# directory is a layout wrapper, which is never an area.
+DIRECTORY_FILES = {"__init__", "__main__", "mod", "index", "lib", "main"}
 
 REVERT_RE = re.compile(r'^(Revert|Reapply) ".+"$')
 AUTOSQUASH_PREFIXES = ("fixup! ", "squash! ", "amend! ")
@@ -331,8 +331,8 @@ def derive_area(path, children):
 
 def file_area(name, dirs):
     stem = PurePosixPath(name).stem or name
-    if stem.lower().strip("_") in DIRECTORY_FILES and dirs:
-        return normalise(dirs[-1]) or None
+    if stem.lower() in DIRECTORY_FILES and dirs:
+        return None if dirs[-1].lower() in LAYOUT_WRAPPERS else normalise(dirs[-1]) or None
     candidate = normalise(stem)
     if not candidate:
         return None

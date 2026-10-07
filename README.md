@@ -128,14 +128,14 @@ work on a branch → commits carry the record → the PR body guides review
 ```
 
 - **Commit messages are the record.** Anyone with a clone, person or agent, can
-  learn what changed, why, and what was checked, without the forge.
-- **The pull request is for review.** Its body helps whoever is reviewing now,
-  and is written so that it can be thrown away.
-- **Landing is your choice.** Fast-forward lands the reviewed commits unchanged
-  and is the default; rebase keeps the messages but not the hashes or
-  signatures, and is the fallback where a forge cannot fast-forward; merge
-  commits and squashes work with a little configuration.
-  [`guidance/landing.md`](guidance/landing.md) has the table.
+  learn what changed, why, and what was checked, without the forge. - **The pull
+  request is for review.** Its body helps whoever is reviewing now, and is
+  written so that it can be thrown away. - **Landing is your choice.** Fast-
+  forward lands the prepared tip unchanged and is the default; rebase keeps the
+  messages but not the hashes or signatures, and is the fallback a repository
+  chooses once where its forge cannot fast-forward; merge commits and squashes
+  work with a little configuration. [`guidance/landing.md`](guidance/landing.md)
+  has the table.
 
 ## Commit messages
 
@@ -245,8 +245,8 @@ Breaking-Change: <what breaks>; <what the consumer must do>
 - `Introduced-by:` names the commit that introduced a bug, and only when the body
   says the bug was shown present at that commit and absent at its parent.
   `git blame` finds the last change to a line, not where a bug began. The key
-  is not called `Fixes:` because that is the commonest issue-closing keyword,
-  and a slip from a hash to an issue link would close the issue on some forges.
+  is not called `Fixes:` because that word closes issues on every forge, and
+  a slip from a hash to an issue link would close the issue on some forges.
 
 Why trailers? Git can pull them out by key without reading the body, for example
 `git log --format='%(trailers:key=Verified,valueonly)'`. Nothing can pull
@@ -280,7 +280,7 @@ GitHub and GitLab, the configured `WIP:` prefix on Forgejo and Gitea.
 A lead of one or two sentences, then up to four sections. A section with nothing
 to say is left out; a heading followed by filler is a defect. Essential facts go
 in visible prose, never in HTML comments, collapsed sections or images, and
-output never goes in the body at all.
+pasted output never goes in the body.
 
 | Part | When | What it holds |
 |---|---|---|
@@ -361,20 +361,20 @@ Nothing in it repeats a commit's reasoning, lists files or claims a result.
 ## Landing
 
 The landing guide is optional, but knowing what your merge method does to the
-commit messages is not, because they are the record. The default is
-**fast-forward**: the branch is folded, reworded where review changed it,
-rebased onto the target, pushed once with a one-sentence comment saying whether
-the tip's tree and messages still match the reviewed head, and the target moves
-to its tip, so the reviewed commits land unchanged, hashes and signatures
-included. GitLab, Forgejo, Gitea and plain Git offer it as a setting; on GitHub
-it is a direct push of the approved tip. **Rebase** is the fallback where that
-is not permitted: the forge replays the commits, keeping their messages but not
-their hashes or your signatures. Squash creates new commits too, so a
-repository that signs its commits lands by fast-forward or merge commit. Merge
-commits work when the merge message is set to the pull-request title only.
-Squashes work when the landing agent composes the squash message in the commit
-format from the branch's commits and supplies it explicitly, so the pull-request
-body never becomes a commit message.
+commit messages is not, because they are the record. The default is **fast-
+forward**: the branch is folded, reworded where review changed it, rebased onto
+the target, pushed once with a one-sentence comment saying whether the tip's
+tree and messages still match the reviewed head, and the target moves to its
+tip, so the prepared tip lands unchanged, hashes and signatures included.
+GitLab, Forgejo, Gitea and plain Git offer it as a setting; on GitHub it is a
+direct push of the approved tip. **Rebase** is the fallback a repository chooses
+once where its landing identity may not push: the forge replays the commits,
+keeping their messages but not their hashes or your signatures. Squash creates
+new commits too, so a repository that signs its commits lands by fast-forward or
+merge commit, never by rebase. Merge commits work when the merge message is set
+to the pull-request title only. Squashes work when the landing agent composes
+the squash message in the commit format from the branch's commits and supplies
+it explicitly, so the pull-request body never becomes a commit message.
 
 Whatever the method, four things hold: under fast-forward, rebase and merge
 commits every message lands as written or as deliberately reworded, and under
@@ -493,9 +493,10 @@ not included.
 
 The finished guidance under [`guidance/`](guidance/) departs from the research
 drafts in a few places, each noted at the top of the draft it supersedes: the
-`Introduced-by:` key, the area derivation, the pull-request lead and the
-`Check`, `Try` and `Not in this PR` wording, the one-sentence landing comment,
-and landing as an optional part, with rebase admitted as the fallback to the
-fast-forward push. The pull-request report also says its cited reviewer
-experiment had no result for commercial reviewers; the package does include a
-closed model, which showed no rise in approvals.
+`Introduced-by:` key, the area derivation, the pull-request title's header
+profile and native subjects, the lead and the `Check`, `Try` and `Not in this
+PR` wording, the one-sentence landing comment, and landing as an optional part,
+with rebase admitted as the fallback to the fast-forward push. The pull-request
+report also says its cited reviewer experiment had no result for commercial
+reviewers; the package does include a closed model, which showed no rise in
+approvals.

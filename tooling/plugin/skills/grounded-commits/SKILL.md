@@ -177,7 +177,7 @@ Breaking-Change: <what breaks>; <what the consumer must do>
   the body says the defect was shown present at that commit and absent at its
   parent — by bisect, or by running the reproducer at both. Blame shows a
   line's last change, not where a defect began. Never an issue number: the key
-  is not `Fixes:` because that is the commonest issue-closing keyword, and a
+  is not `Fixes:` because that word closes issues on every forge, and a
   slip from a hash to an issue link would close the issue on some forges.
 - **`Breaking-Change:`** goes on every commit that changes a public interface
   incompatibly.

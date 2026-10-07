@@ -3,11 +3,12 @@
 ## Unreleased
 
 - Fast-forward is the default landing method, as the research decided, and
-  rebase the stated fallback where the forge cannot fast-forward: on GitHub,
-  where a direct push of the approved tip to the target is not permitted.
-  Rebase keeps the messages but creates new commits, so hashes and
-  signatures are lost, and the guidance says so wherever the methods are
-  listed. The plugin's pull-request skill bundles the landing guidance as
+  rebase the stated fallback, chosen once by a repository whose forge cannot
+  fast-forward: on GitHub, one whose landing identity may not push the
+  approved tip to the target. Rebase keeps the messages but creates new
+  commits, so hashes and signatures are lost; a repository that signs its
+  commits does not take it, and the guidance says so wherever the methods
+  are listed. The plugin's pull-request skill bundles the landing guidance as
   `references/landing.md`, kept byte-identical to `guidance/landing.md` by
   the plugin test.
 - The pull-request guidance's *Before landing* comment is one sentence: the
@@ -23,19 +24,20 @@
   output of both commands on every landing, and on a flattened merge head
   one comment ran to 18 KB with thirty lines of signal. The guidance also
   says essential facts go in visible prose, never in HTML comments,
-  collapsed sections or images, and that the body carries no output at all;
+  collapsed sections or images, and that the body carries no pasted output
+  beyond the line that identifies a failure;
   its list of what never goes in the body includes work diaries and
   instructions to future readers or agents; `Not in this PR` also covers
   what a review round removed from the branch; and ready to land includes,
-  for a rebase or fast-forward landing, the branch still sitting on the
-  target's current tip.
+  for a fast-forward or rebase landing, the branch still sitting on the
+  target's current tip, put there by rebase, with rewritten commits signed
+  as they are made where the repository keeps author signatures.
 - The commit body has no `Not done:` line, and the hook no longer checks for
   one. What the request asked for and the branch does not deliver is a
   property of the pull request, recorded under `Not in this PR`; the
   pull-request research rejected a per-commit line on that ground, and the
   commit guidance had added one without recording a reason. A commit's own
-  limits stay in its body as prose, and a composed squash message carries
-  what `Not in this PR` recorded among its limits.
+  limits stay in its body as prose.
 - The area derivation's prose says what the hook does. A `ci/`, `docs/`,
   `test/`, `tests/` or `build/` directory is an area, as is any of those
   names as a path-map label or listed area; a file whose stem reads as one
@@ -46,7 +48,8 @@
   file named `build`, `test`, `docs`, `ci` or `tests` yields `all` rather
   than the bare word, and `__init__.py` yields its directory's name as the
   guidance always said (the stem was compared with its underscores stripped
-  against a set that kept them). The README no longer claims an area never
+  against a set that kept them), and a file that stands for a layout
+  directory, such as a crate's `src/lib.rs`, gives `all` rather than `src`. The README no longer claims an area never
   moves when unrelated files are added: the only-subdirectory rule reads the
   tracked tree, so a layout directory gaining or losing its second
   subdirectory moves the area beneath it, and the guidance says so. The
@@ -54,8 +57,8 @@
   wrapper-stripping rule, and why `Fixes:` became `Introduced-by:`.
 - The landing guidance says signed commits survive only fast-forward and
   merge commits, and that a rebase landing takes only a linear branch
-  rebased onto the target's current tip, so each replayed tree is a checked
-  tree; GitHub's and Forgejo's up-to-date protections accept a merge from
+  rebased onto the target's current tip, so the replay reproduces the
+  prepared trees and their evidence; GitHub's and Forgejo's up-to-date protections accept a merge from
   the target, so update by rebase. The commit guidance states Git's rule for
   a mixed final paragraph (at least a quarter trailers, one of them
   Git-generated or named in Git configuration).

@@ -40,9 +40,9 @@ paragraph on one line. Leave out any section with nothing to say; a heading
 followed by filler is a defect. Essential facts go in visible prose, never in
 HTML comments, collapsed sections or images, which a reader or tool may not
 expand. The reverse holds too: a fact surrounded by pasted output is as good
-as hidden, so the body carries no output at all, and a comment that must
-carry some puts it in a collapsed block beneath the sentence that says what
-it shows.
+as hidden, so the body carries no pasted output beyond the line that
+identifies a failure, and a comment that must carry more puts it in a
+collapsed block beneath the sentence that says what it shows.
 
 1. **Lead** (always, no heading). One or two sentences: the problem or request
    and what the branch does about it, with a plain link to the issue when one
@@ -121,8 +121,12 @@ will land by a method that keeps its commits (fast-forward or rebase), fold
 the fix-ups into the commits they correct, reword any message the review
 changed, rebase onto the target, rebind the evidence of every commit the
 rewrite produced — not only the reworded ones, since folding and rebasing
-change trees (grounded-commits, *After a rewrite*) — and push once; a branch
-that contains merge commits is rebased with `--rebase-merges` or deliberately
+change trees (grounded-commits, *After a rewrite*) — sign the rewritten
+commits as you make them where the repository keeps author signatures
+(`commit.gpgsign`, or `-S` on the rebase), since a rewrite replaces the signed
+objects, and push once; a branch that contains merge commits keeps them with
+`--rebase-merges` only where the landing is a fast-forward or a merge commit,
+since a forge-side rebase flattens them, and is otherwise deliberately
 flattened. If it will land by squash or merge commit, folding is optional, and
 the landed message is supplied explicitly: for a squash, one message composed
 in the commit format from the branch's commits, with evidence rebound to the
@@ -133,36 +137,39 @@ composed message, or reworded on the contributor's branch only where they
 allow edits from maintainers; with no route recorded, ask the user. Which
 method the repository uses, what each does to the commits and the forge
 settings for it are in `references/landing.md`, relative to this skill's
-directory: fast-forward is the default and rebase the fallback where the forge
-cannot fast-forward.
+directory: fast-forward is the default and rebase the fallback a repository
+chooses once where its landing identity may not push to the target, which
+lands new commits without your signatures, as a squash does.
 
-Either way, if anything was pushed after approval, comment once the push is
-up. The forge records that the head moved, not whether anything changed: its
-compare view shows the diff, not what happened to the messages, and it may
-stop resolving once the old head is pruned. One sentence carries the record:
-the reviewed head's hash, what the push did (folded, reworded, rebased), and
-whether what lands is what was reviewed:
+Either way, before landing, comment with one sentence: the reviewed head's
+hash, what happened since approval (folded, reworded, rebased, or nothing),
+and whether what lands is what was reviewed. The forge records that the head
+moved, not whether anything changed, and its compare view shows the diff, not
+what happened to the messages. Which comparison to make, and to attach,
+depends on the branch:
 
-- **Tree identical.** `git rev-parse <reviewed-head>^{tree} HEAD^{tree}`
-  prints one hash twice: the code that lands is the code that was approved.
-  Say so, then name each commit whose message changed, by a fragment of its
-  subject in quotes, with what changed in it, or say no message changed.
-  Where any commit changed, by a fold, a reword or a reorder, attach
-  `git range-diff <target> <reviewed-head> HEAD`, which shows the change
-  commit by commit and carries no drift when the tree is identical.
+- **Flattened merge.** Where the reviewed head is a merge commit that landing
+  flattened, `git range-diff` skips the merge, pairs the pre-merge commit with
+  the flattened one, and reports the merge's own resolution and the target's
+  drift as change, whatever the tree test says. Compare the branch's patch
+  instead, `git diff $(git merge-base <target> <reviewed-head>) <reviewed-
+  head>` against `git diff <target> HEAD`, and the messages, `git log
+  --format=%B` over `<target>..<reviewed-head>` and over `<target>..HEAD`; say
+  what each comparison shows and attach the two comparisons, not the four
+  outputs.
+- **Tree identical.** Otherwise, `git rev-parse <reviewed-head>^{tree}
+  HEAD^{tree}` printing one hash twice means the code that lands is the code
+  that was approved. Say so, then name each commit whose message changed, by a
+  fragment of its subject in quotes, with what changed in it, or say no
+  message changed. Where any commit changed, by a fold, a reword or a reorder,
+  attach `git range-diff <target> <reviewed-head> HEAD`, which shows the
+  change commit by commit.
 - **Tree differs.** `git range-diff <target> <reviewed-head> HEAD` shows the
   change commit by commit, messages included. Say what it shows, by commit:
-  the target's drift in context lines and nothing else, a fix-up folded in,
-  a hunk dropped, a message reworded; attach it.
-- **Flattened merge.** Where the reviewed head is a merge commit that landing
-  flattened, `git range-diff` skips the merge and reports its resolution as
-  change. Compare the branch's patch instead,
-  `git diff $(git merge-base <target> <reviewed-head>) <reviewed-head>`
-  against `git diff <target> HEAD`, and the messages, `git log --format=%B`
-  over `<target>..<reviewed-head>` and over `<target>..HEAD`; say what each
-  shows and attach them. A branch that keeps its merge commits
-  (`--rebase-merges`) passes `--remerge-diff` to `git range-diff`, or changes
-  to the merge commits' messages go unreported.
+  the target's drift in context lines and nothing else, a fix-up folded in, a
+  hunk dropped, a message reworded; attach it. A branch that keeps its merge
+  commits (`--rebase-merges`) passes `--remerge-diff`, or changes to the merge
+  commits' messages go unreported.
 
 An attachment sits inside a collapsed block, a `<details>` element whose
 `<summary>` names the command, with a blank line after the summary so the
@@ -178,11 +185,12 @@ Re-run the checks on the new tip or record the gap with `Not-verified:`. Ready
 to land means: no open question in the body, `Not in this PR` current, every
 commit message true of its folded contents, the forge not showing draft state,
 for a fast-forward or rebase landing the branch still on the target's current
-tip, the required approvals present, and the required checks passing on the
-exact head that will land. Where the landing method rewrote the commits, read
-the landed messages back (`git log --format=%B <range>`) and compare them with
-what was pushed. After landing, close each fully delivered issue by hand, in a
-comment naming the landed commit.
+tip, put there by rebase and not by merging the target in, the required
+approvals present, and the required checks passing on the exact head that will
+land. Where the landing method rewrote the commits, read the landed messages
+back (`git log --format=%B <range>`) and compare them with what was pushed.
+After landing, close each fully delivered issue by hand, in a comment naming
+the landed commit.
 
 ## Examples
 

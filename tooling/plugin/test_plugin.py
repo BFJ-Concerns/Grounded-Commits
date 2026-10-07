@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Consistency cases for the agent plugin: the bundled checker is the
 reference hook, the bundled landing reference is the landing guidance, and
-every manifest carries the release version and points at this plugin. Run: python3 test_plugin.py"""
+every manifest carries the release version and points at this plugin.
+Run: python3 test_plugin.py"""
 
 import json
 import os

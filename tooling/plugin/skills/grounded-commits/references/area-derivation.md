@@ -6,32 +6,36 @@ checker's `--areas` command prints the result for the staged change, so read
 this when you cannot run it, when a candidate surprises you, or when you are
 configuring a repository's path map.
 
-1. If the repository has a **path map** (`[area_map]` in `.grounded-
-   commits.toml`, or a list in its guidance), the longest matching prefix
-   gives the area. A path no entry matches is derived as below. 2. Otherwise
-   walk the path's directories from the top. A **collection** directory
-   (`packages`, `apps`, `crates`, `modules`, `services`, `cmd`, `pkg`,
-   `internal`) is skipped, and so is a scope such as `@acme` directly inside
-   it; the next segment is the area, even one named like a collection. A
-   **layout** directory (`src`, `source`, `sources`, `lib`, `libs`, `include`,
-   `app`, `main`, `java`, `kotlin`, `scala`, and `test` or `tests` directly
-   inside one of those) is skipped; directly after a layout directory, a
-   directory that is its parent's only tracked subdirectory is skipped too,
-   and after `java`, `kotlin` or `scala` the reverse-domain package root
-   (`com/acme`, `io/github/user`) is skipped as well. Any other directory is
-   the area. With no directory left, the area is the file's name without its
-   extension (`README.md` gives `readme`), or the directory's name for a file
-   that stands for its directory (`__init__.py`, `mod.rs`, `index.ts`,
-   `main.go`, `lib.rs`). 3. Lower-case it, drop characters outside
-   `[a-z0-9._/-]`, and trim anything that is not a letter or digit from both
-   ends (`.github` gives `github`). A result longer than 24 characters is not
-   an area: use `all` and name the directory in the body, or add a path-map
-   entry. 4. A change-type word (`feat`, `fix`, `perf`, `chore`, `refactor`,
-   `style`, `revert`) is never an area, and `ci`, `docs`, `test`, `tests` and
-   `build` are areas only when they name a directory, a path-map label or a
-   listed area. A file whose stem reads as one of those keeps its extension
-   (`fix.py`, `build.gradle`); a directory named for a change type gives
-   `all`, named in the body; a `docs/` or `build/` directory gives `docs` or
+1. If the repository has a **path map** (`[area_map]` in
+   `.grounded-commits.toml`, or a list in its guidance), the longest matching
+   prefix gives the area. A path no entry matches is derived as below.
+2. Otherwise walk the path's directories from the top. A **collection**
+   directory (`packages`, `apps`, `crates`, `modules`, `services`, `cmd`,
+   `pkg`, `internal`) is skipped, and so is a scope such as `@acme` directly
+   inside it; the next segment is the area, even one named like a collection.
+   A **layout** directory (`src`, `source`, `sources`, `lib`, `libs`,
+   `include`, `app`, `main`, `java`, `kotlin`, `scala`, and `test` or `tests`
+   directly inside one of those) is skipped; directly after a layout
+   directory, a directory that is its parent's only tracked subdirectory is
+   skipped too, and after `java`, `kotlin` or `scala` the reverse-domain
+   package root (`com/acme`, `io/github/user`) is skipped as well. Any other
+   directory is the area. With no directory left, the area is the file's name
+   without its extension (`README.md` gives `readme`), or the directory's
+   name for a file that stands for its directory (`__init__.py`,
+   `__main__.py`, `mod.rs`, `index.ts`, `main.go`, `lib.rs`); where that
+   directory is a layout directory, as for a crate's `src/lib.rs`, the file
+   gives `all`, named in the body.
+3. Lower-case it, drop characters outside `[a-z0-9._/-]`, and trim anything
+   that is not a letter or digit from both ends (`.github` gives `github`). A
+   result longer than 24 characters is not an area: use `all` and name the
+   directory in the body, or add a path-map entry.
+4. A change-type word (`feat`, `fix`, `perf`, `chore`, `refactor`, `style`,
+   `revert`) is never an area, and `ci`, `docs`, `test`, `tests` and `build`
+   are areas only when they name a directory, a path-map label or a listed
+   area. A file whose stem reads as one of those keeps its extension
+   (`fix.py`, `build.gradle`), and one with no extension to keep (a root
+   `build` script) gives `all`, named in the body; a directory named for a
+   change type gives `all`; a `docs/` or `build/` directory gives `docs` or
    `build`.
 
 So `internal/scheduler/worker.go` gives `scheduler`, `src/mypkg/cli.py` gives
