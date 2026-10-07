@@ -358,14 +358,15 @@ Nothing in it repeats a commit's reasoning, lists files or claims a result.
 The landing guide is optional, but knowing what your merge method does to the
 commit messages is not, because they are the record. The default is
 **rebase**: the branch is folded, reworded where review changed it, rebased
-onto the target, pushed once with a `git diff` and a `git range-diff` against
-the reviewed head, and landed so that each commit's message survives. Where the
-forge offers a fast-forward (GitLab, Forgejo, Gitea, plain Git) the hashes
-survive too. GitHub's **Rebase and merge** gives the same history with new
-hashes. Merge commits work when the merge message is set to the pull-request
-title only. Squashes work when the landing agent composes the squash message in
-the commit format from the branch's commits and supplies it explicitly, so the
-pull-request body never becomes a commit message.
+onto the target, pushed once with a one-sentence comment saying whether the
+tip's tree and messages still match the reviewed head, and landed so that each
+commit's message survives. Where the forge offers a fast-forward (GitLab,
+Forgejo, Gitea, plain Git) the hashes survive too. GitHub's **Rebase and merge**
+gives the same history with new hashes. Merge commits work when the merge
+message is set to the pull-request title only. Squashes work when the landing
+agent composes the squash message in the commit format from the branch's
+commits and supplies it explicitly, so the pull-request body never becomes a
+commit message.
 
 Whatever the method, three things hold: under fast-forward, rebase and merge
 commits every message lands as written or as deliberately reworded, and under

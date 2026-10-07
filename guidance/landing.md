@@ -6,7 +6,7 @@ Format version 0.2.0. This part is optional: the commit and pull-request convent
 
 1. **The record.** Under fast-forward, rebase and merge commits, each commit's message lands as written, or as deliberately reworded before landing. Under squash, the branch's messages are replaced by one message composed from them; the composition is deliberate, never the forge's default.
 2. **Nothing from the pull-request body enters history.** The body is a review brief.
-3. **What lands is what was reviewed.** The landing comment carries the reviewed head, `git diff <reviewed-head> HEAD` and `git range-diff` (`pull-requests.md`, *Before landing*).
+3. **What lands is what was reviewed.** The landing comment names the reviewed head and says whether the landing tip's tree and messages still match it, with any evidence collapsed (`pull-requests.md`, *Before landing*).
 4. **Issues close by hand after landing**, never by keyword.
 
 Whenever a method rewrites commits, read the landed messages back (`git log --format=%B <range>`) and compare them with what was pushed.

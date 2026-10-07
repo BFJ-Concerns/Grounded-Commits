@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- The pull-request guidance's *Before landing* comment is one sentence: the
+  reviewed head, what the push did, and whether the landing tip's tree is
+  identical to the reviewed head's, with each reworded commit named by
+  subject. Evidence is attached only when something changed and only inside
+  a collapsed `<details>` block: the messages' diff when only messages
+  changed, the `git range-diff` when the tree differs. Before, the section
+  asked for the output of `git diff <reviewed-head> HEAD` and `git
+  range-diff` on every landing; after a rebase the first is the target's
+  drift and the second repeats it as context, and on a branch whose
+  reviewed head was a merge commit that landing flattened, one comment ran
+  to 18 KB with thirty lines of signal. `landing.md`, the README and the
+  plugin's pull-request skill say the same.
+
 ## 0.2.0 — 2026-10-07
 
 - The pull-request guidance's *Before landing* section says to rebind the

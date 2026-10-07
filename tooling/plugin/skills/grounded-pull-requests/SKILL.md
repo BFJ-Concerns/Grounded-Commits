@@ -125,19 +125,45 @@ Never the forge's default, and never this body. A pull request from a fork
 lands by the route the repository's guidance records — rebased as written,
 squashed with a composed message, or reworded on the contributor's branch
 only where they allow edits from maintainers; with no route recorded, ask
-the user. Either way, comment with the reviewed head and two results:
+the user.
+
+Either way, comment once the push is up. The forge records that the head
+moved, not whether anything changed: its compare view shows the diff, not
+what happened to the messages, and it may stop resolving once the old head
+is pruned. One sentence carries the record: the reviewed head's hash, what
+the push did (folded, reworded, rebased), and whether what lands is what was
+reviewed:
+
+- **Tree identical.** `git rev-parse <reviewed-head>^{tree} HEAD^{tree}`
+  prints one hash twice. Say so, then name each commit whose message
+  changed, by a fragment of its subject in quotes, with what changed in it,
+  or say no message changed.
+- **Tree differs.** `git range-diff <target> <reviewed-head> HEAD` shows the
+  change commit by commit, messages included. Say what it shows, by commit:
+  the target's drift in context lines and nothing else, a fix-up folded in,
+  a hunk dropped, a message reworded. Where the reviewed head is a merge
+  commit that landing flattened, `git range-diff` skips the merge and
+  reports its resolution as change; compare the branch's patch instead,
+  `git diff $(git merge-base <target> <reviewed-head>) <reviewed-head>`
+  against `git diff <target> HEAD`, and report that. A branch that keeps its
+  merge commits (`--rebase-merges`) passes `--remerge-diff`, or changes to
+  the merge commits' messages go unreported.
+
+Attach only what changed, and only inside a collapsed block, a `<details>`
+element whose `<summary>` names the command, with a blank line after the
+summary so the fenced block inside renders, so it never floods the thread:
+the messages' diff when only messages changed (`git log --format=%B` over
+`<target>..<reviewed-head>` and over `<target>..HEAD`, compared), the
+range-diff when the tree differs. Never paste `git diff <reviewed-head>
+HEAD`: after a rebase it is the target's drift, which says nothing about the
+branch. For example:
 
 ```
-git diff <reviewed-head> HEAD
-git range-diff <target> <reviewed-head> HEAD
+Folded both fix-ups into "stream CSV exports"; main had not moved. Reviewed head 3e7a1c5; tree identical; "stream CSV exports" reworded with the Verified line for the re-run, no other message changed.
 ```
 
-The first is empty unless the target moved underneath or something reviewed
-was dropped; the second shows what changed commit by commit, messages
-included. `git range-diff` ignores merge commits unless given
-`--remerge-diff`, so a branch rebased with `--rebase-merges` passes it, or
-changes to the merge commits' messages go unreported. Re-run the checks on
-the new tip or record the gap with `Not-verified:`. Ready to land means: no
+Re-run the checks on the new tip or record the gap with `Not-verified:`.
+Ready to land means: no
 open question in the body, `Not in this PR` current, every commit message
 true of its folded contents, the forge not showing draft state, the required
 approvals present, and the required checks passing on the exact head that
