@@ -40,14 +40,14 @@ Soft upper bounds: one commit, about 50 words; a series, 150; several separate o
 
 ## Before landing
 
-Once review is approved, record the reviewed head's hash. Then, if the branch will land by a method that keeps its commits (rebase or fast-forward), fold the fix-ups into the commits they correct, reword any message the review changed, rebind each reworded commit's evidence (`commit-messages.md`, *After a rewrite*), rebase onto the target and push once; a branch that contains merge commits is rebased with `--rebase-merges` or deliberately flattened. If it will land by squash or merge commit, folding is optional and the landing message is handled as `landing.md` describes. Either way, comment with the reviewed head and two results:
+Once review is approved, record the reviewed head's hash. Then, if the branch will land by a method that keeps its commits (rebase or fast-forward), fold the fix-ups into the commits they correct, reword any message the review changed, rebase onto the target, rebind the evidence of every commit the rewrite produced, not only the reworded ones, since folding and rebasing change trees (`commit-messages.md`, *After a rewrite*), and push once; a branch that contains merge commits is rebased with `--rebase-merges` or deliberately flattened. If it will land by squash or merge commit, folding is optional and the landing message is handled as `landing.md` describes. Either way, comment with the reviewed head and two results:
 
 ```
 git diff <reviewed-head> HEAD
 git range-diff <target> <reviewed-head> HEAD
 ```
 
-The first is empty unless the target moved underneath or something reviewed was dropped; the second shows what changed commit by commit, messages included. Re-run the checks on the new tip or record the gap with `Not-verified:`. Ready to land means: no open question in the body, `Not in this PR` current, every commit message true of its folded contents, the forge not showing draft state, the required approvals present, and the required checks passing on the exact head that will land. After landing, close each fully delivered issue by hand, in a comment naming the landed commit.
+The first is empty unless the target moved underneath or something reviewed was dropped; the second shows what changed commit by commit, messages included. `git range-diff` ignores merge commits unless given `--remerge-diff`, so a branch rebased with `--rebase-merges` passes it, or changes to the merge commits' messages go unreported. Re-run the checks on the new tip or record the gap with `Not-verified:`. Ready to land means: no open question in the body, `Not in this PR` current, every commit message true of its folded contents, the forge not showing draft state, the required approvals present, and the required checks passing on the exact head that will land. After landing, close each fully delivered issue by hand, in a comment naming the landed commit.
 
 ## Examples
 

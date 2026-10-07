@@ -134,14 +134,17 @@ git range-diff <target> <reviewed-head> HEAD
 
 The first is empty unless the target moved underneath or something reviewed
 was dropped; the second shows what changed commit by commit, messages
-included. Re-run the checks on the new tip or record the gap with
-`Not-verified:`. Ready to land means: no open question in the body, `Not in
-this PR` current, every commit message true of its folded contents, the forge
-not showing draft state, the required approvals present, and the required
-checks passing on the exact head that will land. Where the landing method
-rewrote the commits, read the landed messages back (`git log --format=%B
-<range>`) and compare them with what was pushed. After landing, close each
-fully delivered issue by hand, in a comment naming the landed commit.
+included. `git range-diff` ignores merge commits unless given
+`--remerge-diff`, so a branch rebased with `--rebase-merges` passes it, or
+changes to the merge commits' messages go unreported. Re-run the checks on
+the new tip or record the gap with `Not-verified:`. Ready to land means: no
+open question in the body, `Not in this PR` current, every commit message
+true of its folded contents, the forge not showing draft state, the required
+approvals present, and the required checks passing on the exact head that
+will land. Where the landing method rewrote the commits, read the landed
+messages back (`git log --format=%B <range>`) and compare them with what was
+pushed. After landing, close each fully delivered issue by hand, in a
+comment naming the landed commit.
 
 ## Examples
 
