@@ -327,8 +327,10 @@ def derive_area(path, children):
                 i += 2  # com/acme
                 if i - 1 < len(dirs) and dirs[i - 1].lower() in CODE_HOSTS:
                     i += 1  # io/github/user
+                after_layout = False  # what follows is no longer directly inside layout
             elif i < len(dirs) and dirs[i].lower() not in LAYOUT_WRAPPERS and len(children.get(prefix, ())) == 1:
                 i += 1  # the layout directory's only subdirectory
+                after_layout = False
             continue
         return normalise(segment) or None
     return file_area(parts[-1], dirs)

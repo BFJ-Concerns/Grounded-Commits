@@ -127,7 +127,8 @@ message is composed afresh from the commits; rebase onto the target, which
 drops any merge of the target into the branch and brings the branch up to date
 in its place (under `--rebase-merges`, only in the `rebase-cousins` mode
 below), and re-apply the conflict resolution and any manual amendment each
-other merge carried, kept or flattened, since `--rebase-merges` recreates a
+merge carried, the dropped merge of the target included, since a dropped or
+flattened merge takes them with it and `--rebase-merges` recreates a kept
 merge without them; compare the cumulative patch with the reviewed head's;
 rebind the evidence of every commit the rewrite produced, not only the
 reworded ones, since folding and rebasing change trees (grounded-commits,
@@ -181,7 +182,8 @@ attach, depends on the branch:
 - **Tree differs.** `git range-diff <target> <reviewed-head> HEAD` shows the
   change commit by commit, messages included. Say what it shows, by commit:
   the target's drift in context lines and nothing else, a fix-up folded in, a
-  hunk dropped, a message reworded; attach it.
+  hunk dropped, a commit dropped as already on the target, a message reworded;
+  attach it.
 
 For a flattened merge, the two comparisons:
 

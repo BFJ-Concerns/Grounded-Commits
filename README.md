@@ -233,8 +233,9 @@ Breaking-Change: <what breaks>; <what the consumer must do>
 - `Not-verified:` is the honest way out. When saying nothing earns nothing,
   guessing is the rational move, so the format gives the writer a proper way to
   say "I didn't run this" or "the result is lost". `not run` covers every case
-  where the check did not happen; `result unavailable` is only for a check that
-  ran and whose outcome cannot be recovered.
+  where you know the check did not happen; `result unavailable` covers a check
+  that ran and whose outcome cannot be recovered, and one you cannot tell ran at
+  all.
 - `Verified:` is a claim, not proof. A hook can check its shape; only review and
   sampling can check that it is true. Its value splits at the first and last
   semicolons, so only the command in the middle may contain one.
