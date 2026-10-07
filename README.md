@@ -300,7 +300,8 @@ series, and 250 for several separate outcomes.
   rise.
 - Checklists. A tick is not evidence, and some bots treat a ticked box as a
   command.
-- Instructions to automated reviewers, or claims that a reviewer agreed.
+- Instructions to automated reviewers or to future readers, and claims that a
+  reviewer agreed.
 - Commit hashes or CI links as pointers to the current head, which the next
   push replaces. Name commits by their subject.
 - Issue-closing keywords. Link issues plainly, and close them by hand after

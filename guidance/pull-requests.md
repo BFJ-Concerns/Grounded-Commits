@@ -10,7 +10,7 @@ The outcome of the whole branch, in the grammar of a commit subject under the re
 
 ## Body
 
-Markdown. GitHub renders a single newline as a line break, so write each paragraph on one line. Leave out any section with nothing to say; a heading followed by filler is a defect.
+Markdown. GitHub renders a single newline as a line break, so write each paragraph on one line. Leave out any section with nothing to say; a heading followed by filler is a defect. Essential facts go in visible prose, never in HTML comments, collapsed sections or images, which a reader or tool may not expand. The reverse holds too: output pasted around a fact buries it, so anything long sits in a collapsed block beneath the sentence that says what it shows.
 
 1. **Lead** (always, no heading). One or two sentences: the problem or request and what the branch does about it, with a plain link to the issue when one exists. This is the body's deliberate overlap with the commits; it carries the objective, not their reasoning, alternatives or evidence. One commit against an issue can be as short as `Delivers <issue URL> in one commit.` With no issue, state the objective and where the request came from, for example "requested by the maintainer in the review of the export branch; no issue exists".
 2. **`### Read`** (several commits, a stacked pull request, or a diff whose shape is not obvious). Which commits prepare and which change behaviour; where to start; what invariant spans them. For a stacked member, its base branch and the pull request it depends on. Not a list of subjects or files, which the forge shows.
@@ -29,7 +29,7 @@ Soft upper bounds: one commit, about 50 words; a series, 150; several separate o
 - Checklists, ticked or unticked.
 - A commit hash or a CI-run link as a pointer to the current head, which the next push replaces. Name commits by subject.
 - A closing or reopening keyword before an issue reference, in the title or the body. Link plainly; close by hand after landing.
-- Model names, session paths, plan steps, tracking codes, CI control tokens.
+- Model names, session paths, plan steps, tracking codes, CI control tokens, and instructions to future readers or agents.
 
 ## During review
 

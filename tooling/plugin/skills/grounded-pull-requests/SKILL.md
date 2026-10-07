@@ -37,7 +37,11 @@ the title on Forgejo and Gitea.
 
 Markdown. GitHub renders a single newline as a line break, so write each
 paragraph on one line. Leave out any section with nothing to say; a heading
-followed by filler is a defect.
+followed by filler is a defect. Essential facts go in visible prose, never in
+HTML comments, collapsed sections or images, which a reader or tool may not
+expand. The reverse holds too: output pasted around a fact buries it, so
+anything long sits in a collapsed block beneath the sentence that says what
+it shows.
 
 1. **Lead** (always, no heading). One or two sentences: the problem or request
    and what the branch does about it, with a plain link to the issue when one
@@ -90,7 +94,8 @@ narration, repetition or assurance.
   next push replaces. Name commits by subject.
 - A closing or reopening keyword before an issue reference, in the title or the
   body. Link plainly; close by hand after landing.
-- Model names, session paths, plan steps, tracking codes, CI control tokens.
+- Model names, session paths, plan steps, tracking codes, CI control tokens,
+  and instructions to future readers or agents.
 
 ## During review
 

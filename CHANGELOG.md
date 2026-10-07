@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- The pull-request guidance says essential facts go in visible prose, never
+  in HTML comments, collapsed sections or images, and that output pasted
+  around a fact buries it, so anything long sits in a collapsed block beneath
+  the sentence that says what it shows. Its list of what never goes in the
+  body includes instructions to future readers or agents. The commit guidance
+  states Git's rule for a mixed final paragraph (at least a quarter trailers,
+  one of them Git-generated or configured). The landing guidance's rebase
+  row says to land only a branch already on the target's tip, so the
+  replayed trees are the checked trees. The research note records why
+  `Fixes:` became `Introduced-by:`.
 - The commit body has no `Not done:` line, and the hook no longer checks for
   one. What the request asked for and the branch does not deliver is a
   property of the pull request, recorded under `Not in this PR`; the

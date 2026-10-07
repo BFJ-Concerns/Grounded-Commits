@@ -42,7 +42,7 @@ Every reason traces to something you observed, an issue or requirement you were 
 
 ## Trailers
 
-One final block after a blank line, with no blank line inside it, every wrapped line indented. Git reads only the last paragraph as trailers, so a trailer above a blank line is silently lost, and a block with an unindented wrapped line is usually not read at all (Git keeps such a block only when it also contains a trailer Git itself generates, such as `Signed-off-by`).
+One final block after a blank line, with no blank line inside it, every wrapped line indented. Git reads only the last paragraph as trailers, so a trailer above a blank line is silently lost, and a block with an unindented wrapped line is usually not read at all (Git reads a mixed final paragraph as trailers only when at least a quarter of its lines are trailers and one of them is a trailer Git generates or the repository configures, such as `Signed-off-by`).
 
 ```
 Verified: <tested contents>; <command or scenario>; <observed outcome>
