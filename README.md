@@ -15,6 +15,22 @@ how branches land.
    [`guidance/commit-messages.md`](guidance/commit-messages.md) and
    [`guidance/pull-requests.md`](guidance/pull-requests.md). They replace the
    commit style and pull-request template the tool ships with.
+   With Claude Code or Codex, install the agent plugin instead: it carries
+   the same guidance as two skills, one for commits and one for pull
+   requests, with the hook bundled. In Claude Code:
+   ```
+   /plugin marketplace add BFJ-Concerns/Grounded-Commits
+   /plugin install grounded-commits@grounded-commits
+   ```
+   In Codex:
+   ```sh
+   codex plugin marketplace add BFJ-Concerns/Grounded-Commits
+   codex plugin add grounded-commits@grounded-commits
+   ```
+   Then add a line to the repository's guidance for agents saying that its
+   commits and pull requests follow Grounded Commits. The skills also treat a
+   repository with a `.grounded-commits.toml` or the hook as adopting the
+   format, and elsewhere apply only when asked.
 2. **Install the hook**, which checks the mechanical rules and tells the agent
    which areas a change could use. In the repository that is adopting the
    format, with Python 3.8 or newer available:

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grounded Pull Requests"
+  short_description: "Write a pull request's title and body as a review brief in the Grounded Commits convention"
+  default_prompt: "Use $grounded-pull-requests when opening, describing or updating a pull request, or preparing an approved branch to land, in a repository that has adopted Grounded Commits, or when asked to write a grounded PR description."

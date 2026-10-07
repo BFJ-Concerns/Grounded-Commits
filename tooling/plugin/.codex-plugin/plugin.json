@@ -1,0 +1,25 @@
+{
+  "name": "grounded-commits",
+  "version": "0.1.1",
+  "description": "Write and check commit messages, and write pull-request descriptions, in the Grounded Commits format.",
+  "author": {
+    "name": "BFJ Concerns"
+  },
+  "homepage": "https://github.com/BFJ-Concerns/Grounded-Commits",
+  "repository": "https://github.com/BFJ-Concerns/Grounded-Commits",
+  "license": "MIT",
+  "keywords": ["git", "commit-messages", "pull-requests"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Grounded Commits",
+    "shortDescription": "Commit messages and pull requests that record what was checked.",
+    "longDescription": "Writes commit messages in the Grounded Commits format, checks them with the format's reference commit-msg hook, and writes pull-request titles and bodies as short review briefs that leave the record to the commits.",
+    "developerName": "BFJ Concerns",
+    "category": "Developer Tools",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": [
+      "Commit these changes as a grounded commit.",
+      "Write a grounded description for this pull request."
+    ]
+  }
+}

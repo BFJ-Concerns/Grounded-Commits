@@ -1,0 +1,735 @@
+#!/usr/bin/env python3
+"""Grounded Commits reference commit-msg hook.
+
+Checks what is mechanical in the format: the subject grammar and its area
+against the changed paths, line width, the trailer block and each trailer's
+value grammar, the evidence pair on commits that touch more than plain
+documentation, CI control tokens, and actionable issue references. Whether a
+reason is true, a claim is substantiated or a change was trivial is judgement
+no script can see.
+
+Install (see tooling/README.md):
+  curl -fsSL -o .git/hooks/commit-msg <raw URL of this file> && chmod +x .git/hooks/commit-msg
+
+Usage:
+  commit-msg <message-file>          Git hook mode: check the message being
+                                     committed against the staged paths
+  commit-msg --rev <rev>             check an existing commit
+  commit-msg --range <base>..<head>  check every commit in a range (CI, landing)
+  commit-msg --areas [--rev <rev>]   print the candidate areas for the staged
+                                     change, or for <rev>
+  commit-msg --message-file F --rev <rev>
+                                     check a draft message against an existing
+                                     commit's changes without committing it
+                                     (before an amend or a rebase reword)
+  commit-msg --message-file F --paths a/b.c d/e.f [--tracked ...]
+                                     check a message against given paths
+
+Exit 0 when clean, 1 with findings (one per line on stderr), 2 on error.
+
+Limits of hook mode: it sees the staged changes, so `git commit --amend` with
+new changes staged is checked against those changes only; run `--rev HEAD`
+after an amend. A merge in progress is checked against its conflict
+resolutions; `--rev` on a merge sees only resolutions that differ from every
+parent.
+
+Optional configuration in <repo>/.grounded-commits.toml (Python 3.11+):
+  forge = "github" | "gitlab" | "forgejo" | "any"     # default "any"
+  header = "area" | "typed"                            # default "area"
+  breaking_marker = "trailer" | "paragraph"            # typed profile only; default "trailer"
+  areas = ["cli", "config"]                            # always-valid areas
+  contract_docs = ["docs/api/", "openapi.yaml"]        # docs needing evidence
+  issue_keys = ["PROJ", "OPS"]                         # tracker keys: PROJ-42 is then an issue
+  [area_map]                                           # path prefix -> label
+  ".github/" = "ci"
+  "myproject/billing/" = "billing"
+"""
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+import unicodedata
+from pathlib import PurePosixPath
+from urllib.parse import urlsplit
+
+FORMAT_VERSION = "0.1.1"
+LINE_LIMIT = 72
+SUBJECT_SCAN_LIMIT = 400  # beyond this a subject is only reported as too long
+AREA_RE = re.compile(r"^[a-z0-9][a-z0-9._/-]{0,23}$")
+SUBJECT_RE = re.compile(r"^([^:\s]+): (\S.*)$")
+TYPED_SUBJECT_RE = re.compile(r"^(feat|fix|perf|refactor|docs|test|build|ci)\(([^)]*)\)(!?): (\S.*)$")
+TYPE_WORDS = {"feat", "fix", "perf", "chore", "refactor", "style", "revert"}
+# From a file these use the full file name instead; as a directory they are `all`.
+DIRECTORY_ONLY_AREAS = {"ci", "docs", "test", "tests", "build"}
+LAYOUT_WRAPPERS = {"src", "source", "sources", "lib", "libs", "include", "app", "main", "java", "kotlin", "scala"}
+TEST_UNDER_LAYOUT = {"test", "tests"}
+JVM_LAYOUT = {"java", "kotlin", "scala"}
+CODE_HOSTS = {"github", "gitlab", "bitbucket", "codeberg", "sourceforge"}
+COLLECTION_WRAPPERS = {"packages", "apps", "crates", "modules", "services", "cmd", "pkg", "internal"}
+# A file that stands for its directory yields the directory's name.
+DIRECTORY_FILES = {"__init__", "mod", "index", "lib", "main"}
+
+REVERT_RE = re.compile(r'^(Revert|Reapply) ".+"$')
+AUTOSQUASH_PREFIXES = ("fixup! ", "squash! ", "amend! ")
+TRIVIAL_OUTCOME_RE = re.compile(
+    r"^((fix|correct) (a |the |an )?(typos?|spelling|misspellings?)\b"
+    r"|fix (a |the )?(broken|dead|stale) links?\b"
+    r"|(apply|run) \S+ formatting\b|reformat\b|fix (the )?formatting\b|normalise whitespace\b|normalize whitespace\b"
+    r"|(reword|clarify|fix|tidy|correct) (a |the )?comments?\b"
+    r"|rename\b.*\bno callers\b"
+    r"|regenerate\b)"
+)
+RENAME_SUBJECT_RE = re.compile(r"\b(rename|move)[sd]?\b")
+DEPENDENCY_FILES = {"go.mod", "go.sum", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "cargo.lock", "poetry.lock",
+                    "pipfile.lock", "gemfile.lock", "composer.lock", "requirements.txt", "uv.lock", "packages.lock.json"}
+DOC_SUFFIXES = {".md", ".markdown", ".rst", ".adoc", ".org"}
+DOC_NAMES = {"license", "licence", "copying", "authors", "contributors", "notice", "changelog", "readme"}
+
+OWN_KEYS = ("Verified", "Not-verified", "Refs", "Introduced-by", "Breaking-Change")
+RENAMED_KEYS = {"fixes": "Introduced-by"}
+KNOWN_TRAILER_KEYS = ("verified", "not-verified", "refs", "introduced-by", "fixes", "breaking-change", "co-authored-by",
+                      "signed-off-by", "reviewed-by", "reviewed-on", "tested-by", "acked-by", "reported-by",
+                      "suggested-by", "assisted-by", "change-id", "link")
+TRAILER_LIKE_RE = re.compile(r"^(" + "|".join(KNOWN_TRAILER_KEYS) + r")\s*:", re.IGNORECASE)
+TRAILER_LINE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]*: \S")
+FILLER = {"passed", "pass", "ok", "okay", "n/a", "na", "none", "tests pass", "tests passed",
+          "success", "succeeded", "done", "fine", "-", "yes", "all good", "works"}
+NOT_VERIFIED_RE = re.compile(r"^(?P<scope>[^;]+?)\s*;\s*(not run|result unavailable):\s*(?P<reason>.+)$")
+INTRODUCED_BY_RE = re.compile(r'^(?P<hash>[0-9a-fA-F]{12,64}) \("(?P<subject>.+)"\)$')
+NOT_DONE_RE = re.compile(r"^Not done: .+; (https?://\S+|not planned|no issue exists)\.?$")
+HONEST_ROUTE = ("; if you have no such evidence, write `Not-verified: <scope>; not run: <reason>` "
+                "instead, and never supply an outcome from memory")
+
+CI_TOKEN_RE = re.compile(
+    r"\[(skip[ _-]ci|ci[ _-]skip|no[ _-]ci|skip[ _-]actions|actions[ _-]skip|skip[ _-]azurepipelines"
+    r"|azurepipelines[ _-]skip|skip[ _-]azp|azp[ _-]skip)\]|skip-checks:|\*\*\*no_ci\*\*\*", re.IGNORECASE)
+# Closing and reopening keywords, each directly before a reference the forge
+# resolves. "any" is the union of the three forges' defaults.
+KEYWORDS = {
+    "github": r"close[sd]?|fix(e[sd])?|resolve[sd]?",
+    "gitlab": r"close[sd]?|closing|fix(e[sd])?|fixing|resolve[sd]?|resolving|implement(s|ed|ing)?",
+    "forgejo": r"close[sd]?|fix(e[sd])?|resolve[sd]?|reopen(s|ed)?",
+}
+KEYWORDS["any"] = "|".join(KEYWORDS.values())
+REFERENCES = {
+    "github": r"#\d+|[\w.-]+/[\w.-]+#\d+",
+    "gitlab": r"#\d+|[\w.-]+(/[\w.-]+)+#\d+|https?://\S+/-/(issues|work_items)/\d+",
+    "forgejo": r"#\d+|[\w.-]+/[\w.-]+#\d+|https?://\S+/issues/\d+",
+}
+REFERENCES["any"] = r"#\d+|[\w.-]+(/[\w.-]+)+#\d+|https?://\S+/(issues|-/issues|work_items)/\d+"
+EMOJI_RE = re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u20E3\U0001F3FB-\U0001F3FF]")
+# A tracker key such as PROJ-42 counts as a reference only where the repository
+# names its keys in `issue_keys`: the shape alone also fits UTF-8, SHA-256 and
+# AGPL-3.0, so an unnamed key is taken to be an identifier.
+ISSUE_KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
+
+
+def issue_key_pattern(config):
+    """`(PROJ|OPS)-<digits>` for the configured tracker keys, or None without any."""
+    keys = config["issue_keys"]
+    return "(" + "|".join(re.escape(key) for key in keys) + r")-\d+" if keys else None
+
+
+def reference_pattern(config):
+    """A group matching what the configured forge resolves as an issue reference."""
+    keys = issue_key_pattern(config)
+    return "(" + REFERENCES[config["forge"]] + (f"|{keys}" if keys else "") + ")"
+
+
+class CheckError(Exception):
+    pass
+
+
+# --- git -------------------------------------------------------------------
+
+def git(*args, repo=None, stdin=None, check=True):
+    cmd = ["git"] + (["-C", repo] if repo else []) + list(args)
+    result = subprocess.run(cmd, input=stdin, capture_output=True, text=True, errors="surrogateescape")
+    if check and result.returncode != 0:
+        raise CheckError(result.stderr.strip() or f"git {' '.join(args)} failed")
+    return result.stdout
+
+
+def repo_root(repo=None):
+    try:
+        return git("rev-parse", "--show-toplevel", repo=repo).strip()
+    except CheckError:
+        return None
+
+
+def git_path(repo, name):
+    return git("rev-parse", "--git-path", name, repo=repo).strip()
+
+
+def parse_name_status(blob):
+    """Paths from `--name-status -z` output, both sides of a rename, and
+    whether every change is a pure rename."""
+    tokens = blob.split("\0")
+    paths, statuses, i = [], [], 0
+    while i < len(tokens) and tokens[i]:
+        width = 2 if tokens[i][0] in "RC" else 1
+        statuses.append(tokens[i])
+        paths.extend(tokens[i + 1:i + 1 + width])
+        i += 1 + width
+    return paths, bool(statuses) and all(s == "R100" for s in statuses)
+
+
+def has_head(repo):
+    return bool(git("rev-parse", "--verify", "--quiet", "HEAD", repo=repo, check=False).strip())
+
+
+def staged_paths(repo, message):
+    """(paths, pure_rename, merge) for the commit being made. A merge in
+    progress is checked against its conflict resolutions: files whose staged
+    content differs from both parents. With nothing staged, a message whose
+    subject is HEAD's is taken to be a message-only amend and uses HEAD's
+    paths; otherwise (an empty commit) there are no paths."""
+    merge_head = os.path.exists(git_path(repo, "MERGE_HEAD"))
+    if merge_head:
+        ours = set(git("diff", "--cached", "--name-only", "-z", "HEAD", repo=repo).split("\0")) - {""}
+        theirs = set(git("diff", "--cached", "--name-only", "-z", "MERGE_HEAD", repo=repo).split("\0")) - {""}
+        return sorted(ours & theirs), False, True
+    paths, pure = parse_name_status(git("diff", "--cached", "--name-status", "-M", "-z", repo=repo))
+    if not paths and has_head(repo):
+        head_subject = git("show", "-s", "--format=%s", "HEAD", repo=repo).strip()
+        if message.split("\n", 1)[0].strip() == head_subject:
+            paths, pure = commit_paths(repo, "HEAD")
+    return paths, pure, False
+
+
+def commit_paths(repo, rev):
+    return parse_name_status(
+        git("diff-tree", "--no-commit-id", "--name-status", "-r", "-M", "--root", "-z", rev, repo=repo))
+
+
+def is_merge(repo, rev):
+    return len(git("show", "-s", "--format=%P", rev, repo=repo).split()) > 1
+
+
+def resolution_paths(repo, rev):
+    """A merge commit's paths that differ from every parent."""
+    return [p for p in git("diff-tree", "--cc", "--name-only", "--no-commit-id", "-r", "-z", rev, repo=repo).split("\0") if p]
+
+
+def tracked_files(repo, rev=None):
+    if rev:
+        return [p for p in git("ls-tree", "-r", "--name-only", "-z", rev, repo=repo).split("\0") if p]
+    return [p for p in git("ls-files", "-z", repo=repo).split("\0") if p]
+
+
+def parse_trailers(message):
+    out = git("interpret-trailers", "--parse", "--no-divider", stdin=message)
+    pairs = []
+    for line in out.splitlines():
+        key, _, value = line.partition(":")
+        pairs.append((key.strip(), value.strip()))
+    return pairs
+
+
+# --- configuration -----------------------------------------------------------
+
+DEFAULT_CONFIG = {"forge": "any", "header": "area", "breaking_marker": "trailer", "areas": [], "contract_docs": [],
+                  "issue_keys": [], "area_map": {}}
+
+
+def load_config(root):
+    path = os.path.join(root, ".grounded-commits.toml") if root else None
+    config = {k: (list(v) if isinstance(v, list) else dict(v) if isinstance(v, dict) else v)
+              for k, v in DEFAULT_CONFIG.items()}
+    if not path or not os.path.exists(path):
+        return config
+    try:
+        import tomllib
+    except ImportError as error:  # Python < 3.11
+        raise CheckError(f"{path} exists but this Python cannot read TOML; use Python 3.11 or newer") from error
+    try:
+        with open(path, "rb") as handle:
+            data = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        raise CheckError(f"{path}: {error}") from error
+    for key, value in data.items():
+        if key not in config:
+            raise CheckError(f"{path}: unknown key `{key}`")
+        config[key] = value
+    choices = {"forge": tuple(KEYWORDS), "header": ("area", "typed"), "breaking_marker": ("trailer", "paragraph")}
+    for key, allowed in choices.items():
+        if not isinstance(config[key], str) or config[key] not in allowed:
+            raise CheckError(f"{path}: {key} must be one of {', '.join(allowed)}")
+    for key in ("areas", "contract_docs", "issue_keys"):
+        if not isinstance(config[key], list) or not all(isinstance(v, str) for v in config[key]):
+            raise CheckError(f"{path}: {key} must be a list of strings")
+    for key in config["issue_keys"]:
+        if not ISSUE_KEY_RE.match(key):
+            raise CheckError(f"{path}: issue key `{key}` must be upper-case letters, digits or `_`, starting with a letter")
+    if not isinstance(config["area_map"], dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in config["area_map"].items()):
+        raise CheckError(f"{path}: area_map must map path prefixes to areas")
+    for label in list(config["areas"]) + list(config["area_map"].values()):
+        if not AREA_RE.match(label) or label in TYPE_WORDS:
+            raise CheckError(f"{path}: `{label}` is not a valid area")
+    return config
+
+
+# --- area derivation ---------------------------------------------------------
+
+def normalise(name):
+    name = re.sub(r"[^a-z0-9._/-]", "", name.lower())
+    return re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", name)
+
+
+def subdirectories(tracked):
+    """Each directory's immediate tracked subdirectories, keyed by prefix ("" is the root)."""
+    children = {"": set()}
+    for path in tracked:
+        parts = path.split("/")
+        for depth in range(1, len(parts)):
+            parent = "/".join(parts[:depth - 1])
+            children.setdefault(parent, set()).add(parts[depth - 1])
+            children.setdefault("/".join(parts[:depth]), set())
+    return children
+
+
+def derive_area(path, children):
+    """The area one changed path yields under derivation, or None.
+
+    Walk the directories from the top. A collection directory, and a scope
+    directly inside it, is skipped and the next segment is the area. A layout
+    directory is skipped; directly after it, its only tracked subdirectory
+    is skipped too, and after java/kotlin/scala the reverse-domain package
+    root is skipped. Any other directory is the area. With none left, the
+    file's name without its extension, or its directory for a file that
+    stands for one (__init__.py, mod.rs, index.*, main.*, lib.*)."""
+    parts = path.split("/")
+    dirs = parts[:-1]
+    i = 0
+    after_layout = False
+    while i < len(dirs):
+        segment = dirs[i]
+        lower = segment.lower()
+        prefix = "/".join(dirs[:i + 1])
+        if lower in COLLECTION_WRAPPERS or segment.startswith("@"):
+            i += 1
+            while i < len(dirs) and dirs[i].startswith("@"):
+                i += 1
+            return normalise(dirs[i]) or None if i < len(dirs) else file_area(parts[-1], dirs)
+        if lower in LAYOUT_WRAPPERS or (after_layout and lower in TEST_UNDER_LAYOUT):
+            after_layout = True
+            i += 1
+            if lower in JVM_LAYOUT and i < len(dirs) and re.fullmatch(r"[a-z]{2,3}", dirs[i].lower()):
+                i += 2  # com/acme
+                if i - 1 < len(dirs) and dirs[i - 1].lower() in CODE_HOSTS:
+                    i += 1  # io/github/user
+            elif i < len(dirs) and dirs[i].lower() not in LAYOUT_WRAPPERS and len(children.get(prefix, ())) == 1:
+                i += 1  # the layout directory's only subdirectory
+            continue
+        return normalise(segment) or None
+    return file_area(parts[-1], dirs)
+
+
+def file_area(name, dirs):
+    stem = PurePosixPath(name).stem or name
+    if stem.lower().strip("_") in DIRECTORY_FILES and dirs:
+        return normalise(dirs[-1]) or None
+    candidate = normalise(stem)
+    if not candidate:
+        return None
+    if candidate in TYPE_WORDS or candidate in DIRECTORY_ONLY_AREAS:
+        candidate = normalise(name)
+    return candidate or None
+
+
+def area_candidates(paths, config, tracked):
+    """Valid areas the changed paths yield: path-map labels by longest prefix,
+    else derivation. A derived name that is a type word, or longer than 24
+    characters, yields nothing, so `all` (always valid) is what remains."""
+    children = subdirectories(tracked)
+    found = []
+    for path in paths:
+        matches = [(len(prefix), label) for prefix, label in config["area_map"].items() if path.startswith(prefix)]
+        candidate = max(matches)[1] if matches else derive_area(path, children)
+        if candidate and AREA_RE.match(candidate) and candidate not in TYPE_WORDS and candidate not in found:
+            found.append(candidate)
+    return found
+
+
+# --- checks ------------------------------------------------------------------
+
+def is_documentation(path, config):
+    if any(path.startswith(prefix) for prefix in config["contract_docs"]):
+        return False
+    pure = PurePosixPath(path)
+    if pure.name.lower() in DEPENDENCY_FILES:
+        return False
+    return pure.suffix.lower() in DOC_SUFFIXES or pure.name.lower() in DOC_NAMES
+
+
+def is_dependency_change(paths):
+    return any(PurePosixPath(p).name.lower() in DEPENDENCY_FILES or p.lower().endswith(".lock") for p in paths)
+
+
+def paragraphs(lines):
+    groups, current, start = [], [], None
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip():
+            if not current:
+                start = index
+            current.append(line)
+        elif current:
+            groups.append((start, current))
+            current = []
+    if current:
+        groups.append((start, current))
+    return groups
+
+
+def split_verified(value):
+    first, last = value.find(";"), value.rfind(";")
+    if first == -1 or first == last:
+        return None
+    parts = [value[:first].strip(), value[first + 1:last].strip(), value[last + 1:].strip()]
+    return parts if all(parts) else None
+
+
+def is_filler(text):
+    return text.strip().rstrip(".!").strip().lower() in FILLER
+
+
+def check_subject(subject, paths, config, tracked):
+    """(findings, bang) for the subject line."""
+    findings = []
+    subject = subject.rstrip()
+    if len(subject) > LINE_LIMIT:
+        findings.append(f"subject is {len(subject)} characters; the limit is {LINE_LIMIT}")
+        if len(subject) > SUBJECT_SCAN_LIMIT:
+            return findings, ""
+    bang = ""
+    if config["header"] == "typed":
+        match = TYPED_SUBJECT_RE.match(subject)
+        if not match:
+            return findings + ["subject must be `type(area): outcome` with one of feat, fix, perf, refactor, docs, "
+                               "test, build, ci, under this repository's typed header profile"], ""
+        _, area, bang, outcome = match.groups()
+    else:
+        match = SUBJECT_RE.match(subject)
+        if not match:
+            return findings + ["subject must be `<area>: <outcome>`"], ""
+        area, outcome = match.groups()
+    candidates = area_candidates(paths, config, tracked)
+    allowed = sorted(set(candidates) | set(config["areas"]) | {"all"})
+    allowed_text = ", ".join(f"`{a}`" for a in allowed)
+    if re.split(r"[(!]", area)[0] in TYPE_WORDS:
+        findings.append(f"`{area}` is a change-type word, not an area; this repository uses `area: outcome`, "
+                        f"and the changed paths allow {allowed_text}")
+    elif not AREA_RE.match(area):
+        findings.append(f"area `{area}` must be lower case [a-z0-9._/-], at most 24 characters; use one of "
+                        f"{allowed_text}, or add a path-map entry")
+    elif paths and area not in allowed:
+        findings.append(f"area `{area}` does not come from the changed paths; use one of {allowed_text}, "
+                        "or add a path-map entry")
+    first_word = re.match(r"[^\W\d_]+", outcome)
+    if first_word and first_word.group(0)[0].isupper() and first_word.group(0)[1:].islower():
+        findings.append("the outcome after the colon starts with a capital letter; begin it in lower case "
+                        "(identifiers keep their case)")
+    if subject.endswith("."):
+        findings.append("subject ends with a full stop")
+    keys = issue_key_pattern(config)
+    if re.search(r"(^|[\s(])(#\d+|[\w.-]+(/[\w.-]+)+#\d+" + (f"|{keys}" if keys else "") + r")\b", outcome):
+        findings.append("subject carries an issue reference; put the issue in a `Refs:` trailer as an absolute URL")
+    if "!" in outcome:
+        findings.append("`!` does not belong in the outcome; a break is a `Breaking-Change:` trailer"
+                        + (" and, under the typed profile, `!` before the colon" if config["header"] == "typed" else ""))
+    if EMOJI_RE.search(subject) or any(unicodedata.category(ch) == "So" for ch in subject):
+        findings.append("subject contains an emoji or symbol")
+    return findings, bang
+
+
+def check_body(lines, groups, trailer_block):
+    findings = []
+    for index, line in enumerate(lines[1:], start=2):
+        if len(line) > LINE_LIMIT and not any(len(token) > 50 for token in line.split()):
+            findings.append(f"line {index} is {len(line)} columns; wrap at {LINE_LIMIT}")
+        if re.match(r"^#{1,6} \S", line):
+            findings.append(f"line {index} is a heading; the body is prose without headings")
+    malformed = bool(groups) and not trailer_block and any(TRAILER_LIKE_RE.match(l) for l in groups[-1][1])
+    if malformed:
+        findings.append("the last paragraph mixes trailers with other lines, so Git does not read it as a "
+                        "trailer block; every line there must be `Key: value` or an indented continuation")
+    if trailer_block:
+        for offset, line in enumerate(groups[-1][1]):
+            if not (TRAILER_LINE_RE.match(line) or line.startswith((" ", "\t"))
+                    or line.startswith("(cherry picked from commit ")):
+                findings.append(f"line {groups[-1][0] + offset + 1} sits in the trailer block but is neither "
+                                "`Key: value` nor an indented continuation")
+    body_groups = groups[:-1] if (trailer_block or malformed) else groups
+    for start, group in body_groups:
+        for offset, line in enumerate(group):
+            if TRAILER_LIKE_RE.match(line):
+                key = line.split(":", 1)[0]
+                findings.append(f"`{key}:` on line {start + offset + 1} is outside the final trailer block, so Git "
+                                "does not read it; keep every trailer in one last paragraph with no blank line inside")
+        joined = " ".join(l.strip() for l in group)
+        if joined.startswith("Not done:") and not NOT_DONE_RE.match(joined):
+            findings.append("`Not done:` needs `<what was asked and is not delivered>; <issue URL, "
+                            "\"not planned\" or \"no issue exists\">`, as its own paragraph")
+    return findings
+
+
+def check_trailer_values(trailers, repo, bang, config):
+    findings = []
+    has_break = False
+    for key, value in trailers:
+        lower = key.lower()
+        if lower in RENAMED_KEYS:
+            findings.append(f"`{key}:` is `{RENAMED_KEYS[lower]}:` in this format; it names the commit that "
+                            "introduced the defect, never an issue")
+            continue
+        canonical = next((k for k in OWN_KEYS if k.lower() == lower), None)
+        if canonical is None:
+            continue
+        if canonical != key:
+            findings.append(f"trailer key `{key}:` should be spelled `{canonical}:`")
+        if canonical == "Verified":
+            parts = split_verified(value)
+            if parts is None:
+                findings.append(f"`Verified: {value}` needs three parts: `<tested contents>; <command or scenario>; "
+                                "<observed outcome>`" + HONEST_ROUTE)
+            elif any(is_filler(part) for part in parts):
+                findings.append(f"`Verified: {value}` uses a filler word; name the tested tree, the exact command "
+                                "and what was observed" + HONEST_ROUTE)
+        elif canonical == "Not-verified":
+            match = NOT_VERIFIED_RE.match(value)
+            if not match or is_filler(match["reason"]) or is_filler(match["scope"]):
+                findings.append(f"`Not-verified: {value}` needs `<scope>; not run: <reason>` or "
+                                "`<scope>; result unavailable: <reason>`")
+        elif canonical == "Refs":
+            url = urlsplit(value)
+            if url.scheme.lower() not in ("http", "https") or not url.netloc or " " in value:
+                findings.append(f"`Refs: {value}` must be one absolute http(s) URL")
+        elif canonical == "Introduced-by":
+            findings.extend(check_introduced_by(value, repo))
+        elif canonical == "Breaking-Change":
+            has_break = True
+            what, _, action = value.partition(";")
+            if not what.strip() or not action.strip():
+                findings.append(f"`Breaking-Change: {value}` needs `<what breaks>; <what the consumer must do>`")
+    if config["header"] == "typed":
+        if config["breaking_marker"] == "paragraph":
+            if bang:
+                findings.append("this repository's release parser reads the spaced `BREAKING CHANGE:` paragraph, "
+                                "not `!`; drop the `!` and put the paragraph last in the body")
+        elif bool(bang) != has_break:
+            findings.append("under the typed header profile `!` before the colon and a `Breaking-Change:` trailer go together")
+    return findings
+
+
+def check_introduced_by(value, repo):
+    match = INTRODUCED_BY_RE.match(value)
+    if not match:
+        return [f'`Introduced-by: {value}` must be `<12-64 hex> ("<subject of the introducing commit>")`; '
+                "an issue goes in `Refs:`"]
+    if not repo:
+        return []
+    actual = git("show", "-s", "--format=%s", f"{match['hash']}^{{commit}}", repo=repo, check=False).strip()
+    if not actual:
+        return [f"`Introduced-by:` names {match['hash']}, which is not a commit in this repository"]
+    if actual != match["subject"]:
+        return [f'`Introduced-by:` quotes "{match["subject"]}" but {match["hash"]} has the subject "{actual}"']
+    return []
+
+
+def forbidden_content(message, config):
+    """CI tokens and actionable issue references, anywhere in the text."""
+    findings = []
+    for match in CI_TOKEN_RE.finditer(message):
+        findings.append(f"contains the CI control token `{match.group(0)}`; remove it, and if one is wanted the user adds it")
+    actionable = re.compile(r"(?i:\b(" + KEYWORDS[config["forge"]] + r")):?[ \t]+(?i:issues?[ \t]+)?" + reference_pattern(config))
+    for match in actionable.finditer(message):
+        findings.append(f"`{match.group(0)}` would act on an issue at the forge; reference it as `Refs: <absolute URL>` instead")
+    return findings
+
+
+def check_message(message, paths, config, tracked=(), repo=None, merge=False, pure_rename=False):
+    """All findings for one message. For a merge, `paths` are its resolutions."""
+    lines = message.rstrip("\n").split("\n")
+    subject = lines[0].rstrip()
+    findings = forbidden_content(message, config)
+    if subject.startswith(AUTOSQUASH_PREFIXES):
+        return findings
+    if len(lines) > 1 and lines[1].strip():
+        findings.append("the second line must be blank")
+    bang = ""
+    native = merge or bool(REVERT_RE.match(subject))
+    if not native:
+        subject_findings, bang = check_subject(subject, paths, config, tracked)
+        findings.extend(subject_findings)
+    groups = paragraphs(lines)
+    trailers = parse_trailers(message)
+    trailer_block = bool(trailers)
+    findings.extend(check_body(lines, groups, trailer_block))
+    findings.extend(check_trailer_values(trailers, repo, bang, config))
+    has_body = len(groups) > (1 if trailer_block else 0)
+    outcome = subject.split(": ", 1)[1] if ": " in subject else subject
+    trivial = (pure_rename and RENAME_SUBJECT_RE.search(outcome.lower())) or TRIVIAL_OUTCOME_RE.match(outcome.lower())
+    if is_dependency_change(paths):
+        trivial = False
+    if not has_body and (paths if merge else not trivial):
+        findings.append("the body is missing; only a subject naming a typo, broken link, formatting, comment "
+                        "wording, a rename with no callers changed, or a regenerated artefact may omit it"
+                        + (", and a merge only when it resolves nothing" if merge else ""))
+    needing = [p for p in paths if not is_documentation(p, config)]
+    has_evidence = any(key.lower() in ("verified", "not-verified") for key, _ in trailers)
+    if needing and not has_evidence:
+        findings.append(f"no `Verified:` or `Not-verified:` trailer, but the commit changes {needing[0]}"
+                        + (f" and {len(needing) - 1} more" if len(needing) > 1 else "")
+                        + " beyond plain documentation; `Verified:` records evidence you actually have, and "
+                        "`Not-verified: <scope>; not run: <reason>` covers what it does not reach")
+    return findings
+
+
+# --- entry points ------------------------------------------------------------
+
+def rev_paths(repo, rev):
+    """(sha, paths, pure_rename, merge) for an existing commit; a merge's paths
+    are its conflict resolutions."""
+    sha = git("rev-parse", "--verify", f"{rev}^{{commit}}", repo=repo).strip()
+    if is_merge(repo, sha):
+        return sha, resolution_paths(repo, sha), False, True
+    paths, pure = commit_paths(repo, sha)
+    return sha, paths, pure, False
+
+
+def check_against_rev(repo, rev, message, config):
+    """Findings for `message` as the message of the commit at `rev`."""
+    sha, paths, pure, merge = rev_paths(repo, rev)
+    return sha, check_message(message, paths, config, tracked_files(repo, sha), repo, merge, pure)
+
+
+def check_rev(repo, rev, config):
+    message = git("show", "-s", "--format=%B", f"{rev}^{{commit}}", repo=repo)
+    sha, findings = check_against_rev(repo, rev, message, config)
+    return sha, message, findings
+
+
+def strip_comments(text, comment_char):
+    """The message as Git's comment-stripping cleanup leaves it: comment lines
+    and everything from a scissors line dropped."""
+    kept = []
+    scissors = f"{comment_char} ------------------------ >8 ------------------------"
+    for line in text.split("\n"):
+        if line.startswith(scissors):
+            break
+        if not line.startswith(comment_char):
+            kept.append(line)
+    return "\n".join(kept).strip("\n") + "\n"
+
+
+def clean(text):
+    return "".join(ch if ch in "\n\t" or unicodedata.category(ch)[0] != "C" else "?" for ch in text)
+
+
+def report(label, message, findings):
+    print(clean(f"grounded-commits: {label} ({message.split(chr(10), 1)[0]}):"), file=sys.stderr)
+    for finding in findings:
+        print(clean(f"- {finding}"), file=sys.stderr)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=f"Grounded Commits {FORMAT_VERSION} commit-msg hook")
+    parser.add_argument("message_file", nargs="?", help="message file (Git hook mode)")
+    parser.add_argument("--rev", help="check an existing commit, or a --message-file draft against its changes")
+    parser.add_argument("--range", dest="rev_range", help="check every commit in <base>..<head>")
+    parser.add_argument("--areas", action="store_true", help="print the candidate areas and exit")
+    parser.add_argument("--message-file", dest="explicit_file", help="message to check against --rev or --paths")
+    parser.add_argument("--paths", nargs="*", default=None, help="changed paths for --message-file")
+    parser.add_argument("--tracked", nargs="*", default=None, help="tracked paths for --message-file")
+    parser.add_argument("--repo", default=None, help="repository directory (default: current)")
+    args = parser.parse_args(argv)
+    try:
+        root = repo_root(args.repo)
+        config = load_config(root)
+        if args.explicit_file:
+            with open(args.explicit_file, encoding="utf-8", errors="replace") as handle:
+                message = handle.read()
+            if args.rev:
+                if args.paths is not None or args.tracked is not None:
+                    raise CheckError("--rev supplies the paths; it cannot be combined with --paths or --tracked")
+                if not root:
+                    raise CheckError("not inside a git repository")
+                sha, findings = check_against_rev(root, args.rev, message, config)
+                label = f"message for {sha[:12]}"
+            else:
+                paths = args.paths or []
+                tracked = args.tracked if args.tracked is not None else paths
+                findings = check_message(message, paths, config, tracked, None)
+                label = "message"
+        elif args.areas:
+            if not root:
+                raise CheckError("not inside a git repository")
+            if args.rev:
+                sha, paths, _, _ = rev_paths(root, args.rev)
+                tracked = tracked_files(root, sha)
+            else:
+                paths = staged_paths(root, "")[0]
+                tracked = tracked_files(root)
+            for area in area_candidates(paths, config, tracked) or ["all"]:
+                print(area)
+            return 0
+        elif args.rev_range:
+            if not root:
+                raise CheckError("not inside a git repository")
+            shas = git("rev-list", "--reverse", args.rev_range, repo=root).split()
+            failed = 0
+            for sha in shas:
+                sha, message, findings = check_rev(root, sha, config)
+                if findings:
+                    failed += 1
+                    report(sha[:12], message, findings)
+            print(f"grounded-commits: {len(shas) - failed} of {len(shas)} commits clean", file=sys.stderr)
+            return 1 if failed else 0
+        elif args.rev:
+            if not root:
+                raise CheckError("not inside a git repository")
+            sha, message, findings = check_rev(root, args.rev, config)
+            label = sha[:12]
+        elif args.message_file:
+            if not root:
+                raise CheckError("not inside a git repository")
+            with open(args.message_file, encoding="utf-8", errors="replace") as handle:
+                raw = handle.read()
+            comment_char = git("config", "--get", "core.commentChar", repo=root, check=False).strip() or "#"
+            if comment_char == "auto":
+                comment_char = "#"
+            # Prohibited content is checked on the raw text: whether Git keeps
+            # comment lines depends on its cleanup mode, so none may carry it.
+            findings = forbidden_content(raw, config)
+            message = strip_comments(raw, comment_char)
+            if not message.strip():
+                if raw.strip():
+                    findings.append("the message has only comment lines, which Git may keep; write a message")
+                else:
+                    return 0  # Git aborts an empty message itself
+            else:
+                paths, pure, merge = staged_paths(root, message)
+                findings += [f for f in check_message(message, paths, config, tracked_files(root), root, merge, pure)
+                             if f not in findings]
+            label = "commit message"
+        else:
+            parser.print_usage(sys.stderr)
+            return 2
+    except CheckError as error:
+        print(clean(f"grounded-commits: {error}"), file=sys.stderr)
+        return 2
+    except OSError as error:
+        print(clean(f"grounded-commits: {error}"), file=sys.stderr)
+        return 2
+    if not findings:
+        return 0
+    report(label, message, findings)
+    print("See guidance/commit-messages.md; a `Not-verified:` line is always an honest option.", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

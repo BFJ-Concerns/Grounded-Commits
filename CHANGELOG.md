@@ -8,6 +8,12 @@
   before the amend or reword that records it. Before, a draft could only be
   checked against hand-listed `--paths`, which skipped the lookups of
   `Introduced-by:` hashes, or by committing it.
+- An agent plugin for Claude Code and Codex, installable from this
+  repository's marketplace with either tool's plugin commands. It carries
+  the guidance as two skills, one for commit messages and one for
+  pull-request titles and bodies, and bundles the hook so the commit skill
+  can print candidate areas, check commits and drafts, and install the hook
+  into a repository.
 
 ## 0.1.1 — 2026-10-06
 

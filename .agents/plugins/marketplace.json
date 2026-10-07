@@ -1,0 +1,20 @@
+{
+  "name": "grounded-commits",
+  "interface": {
+    "displayName": "Grounded Commits"
+  },
+  "plugins": [
+    {
+      "name": "grounded-commits",
+      "source": {
+        "source": "local",
+        "path": "./tooling/plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

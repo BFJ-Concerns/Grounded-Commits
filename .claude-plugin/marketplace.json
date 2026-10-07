@@ -1,0 +1,14 @@
+{
+  "name": "grounded-commits",
+  "description": "The Grounded Commits agent skills for commit messages and pull requests.",
+  "owner": {
+    "name": "BFJ Concerns"
+  },
+  "plugins": [
+    {
+      "name": "grounded-commits",
+      "source": "./tooling/plugin",
+      "description": "Write and check commit messages, and write pull-request descriptions, in the Grounded Commits format."
+    }
+  ]
+}

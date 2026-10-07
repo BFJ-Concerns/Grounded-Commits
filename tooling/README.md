@@ -60,8 +60,21 @@ Run the fixtures with `python3 tooling/commit-msg-hook/test_fixtures.py`. A
 clean check proves the shape only; whether the problem, the reasons and the
 claims in a message are true is for review.
 
-## `skills/`
+## `plugin/`
 
-Where packaged skills for agent tools go: a skill carries the guidance and
-runs the message check from inside the tool. Any skill here is derived from
-`guidance/` and changes with it.
+The agent plugin for Claude Code and Codex, listed by the marketplaces at
+`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`; the
+top-level README has the install commands. One set of skills serves both
+tools:
+
+- `skills/grounded-commits/` writes and checks commit messages. It bundles
+  this hook as `scripts/commit-msg`, runs it for the candidate areas and to
+  check commits, and installs it into a repository when asked.
+- `skills/grounded-pull-requests/` writes and maintains a pull request's
+  title and body.
+
+The skills are derived from `guidance/` and change with it. The bundled
+`scripts/commit-msg` is a copy of `commit-msg-hook/commit-msg`, and both
+plugin manifests carry the release in `VERSION`; `python3
+tooling/plugin/test_plugin.py` fails when either drifts, so a hook change or
+a release updates the plugin in the same commit.
