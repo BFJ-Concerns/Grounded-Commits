@@ -8,10 +8,15 @@
   approved tip to the target. On GitHub a rebase landing creates new
   commits, so hashes and signatures are lost and a commit that was empty to
   begin with is dropped; Forgejo and Gitea rewrite only a branch that is
-  behind or one a merge template amends, reading templates from the base
-  repository's default branch, and a template amend fails on an originally
-  empty tip, so such a commit's message is folded into a neighbour before
-  any rebase landing. A repository that signs its commits lands by
+  behind or one a merge template amends, and a template amend fails on an
+  originally empty tip, so such a commit's message is folded into a
+  neighbour before any rebase landing. Templates are read from the base
+  repository's default branch, per forge: Gitea's `REBASE_TEMPLATE.md` then
+  its `DEFAULT_TEMPLATE.md` fallback, Forgejo's under `.forgejo/` or
+  `.gitea/` then the instance's own, an empty file still yielding the
+  default message. A fork's prepared branch must become the pull request's
+  head, pushed by the maintainer where the contributor allows edits or by
+  the contributor. A repository that signs its commits lands by
   fast-forward or merge commit. The plugin's pull-request skill bundles the
   landing guidance as `references/landing.md`, kept byte-identical to
   `guidance/landing.md` by the plugin test.
@@ -27,10 +32,12 @@
   pasted: after a rebase it mixes the target's drift with any change to
   the branch. Before, the section asked for the output of both commands on
   every landing, and on a flattened merge head one comment ran to 18 KB
-  with thirty lines of signal. Preparation is the same for every method:
-  reword where the commits land, fold where the method keeps them, rebase
-  onto the target, rebind the evidence, sign the rewritten commits where
-  the repository keeps author signatures, push once. The guidance also
+  with thirty lines of signal. Preparation applies to every method: reword
+  where the branch's commits land, fold where they land (optional under a
+  merge commit, and before a rebase landing an originally empty commit's
+  message is folded into a neighbour), rebase onto the target, rebind the
+  evidence, sign the rewritten commits where the repository keeps author
+  signatures, push once. The guidance also
   says essential facts go in visible prose, never in HTML comments,
   collapsed sections or images, and that the body carries no pasted output
   beyond the one line that identifies the failure the branch addresses;

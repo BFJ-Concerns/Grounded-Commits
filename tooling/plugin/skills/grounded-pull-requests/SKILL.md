@@ -120,29 +120,31 @@ narration, repetition or assurance.
 Once review is approved, record the reviewed head's hash. Then, whatever the
 method: where the branch's commits will land (fast-forward, rebase or a merge
 commit), reword any message the review changed and fold the fix-ups into the
-commits they correct, folding being optional under a merge commit, while under
-squash both serve only the comparison below, since the landed message is
-composed afresh; rebase onto the target; rebind the evidence of every commit
-the rewrite produced, not only the reworded ones, since folding and rebasing
-change trees (grounded-commits, *After a rewrite*); sign the rewritten commits
-as you make them where the repository keeps author signatures
-(`commit.gpgsign`, or `-S` on the rebase), since a rewrite replaces the signed
-objects; and push once. A branch that contains merge commits keeps them with
-`--rebase-merges` for a fast-forward or merge-commit landing and is
-deliberately flattened for a rebase landing, since that route lands only a
-linear branch and GitHub's replay rewrites every commit; under squash they
-need no keeping, since one commit lands. For a rebase landing, fold the
-message of any commit that was empty to begin with into a neighbour, as
-`references/landing.md` describes. Under squash or a merge commit the landed
-message is supplied explicitly: for a squash, one message composed in the
-commit format from the branch's commits, with evidence rebound to the landed
-tree; for a merge commit, the pull-request title alone. Never the forge's
-default, and never this body. A pull request from a fork lands by the route
-the repository's guidance records: rebased as written, squashed with a
-composed message, or reworded on the contributor's branch only where they
-allow edits from maintainers; with no route recorded, ask the user. Which
-method the repository uses, what each does to the commits and the forge
-settings for it are in `references/landing.md`, relative to this skill's
+commits they correct, folding being optional under a merge commit, and for a
+rebase landing also fold the message of any commit that was empty to begin
+with into a neighbour (`references/landing.md` says why); under squash
+rewording and folding are optional, since the landed message is composed
+afresh from the commits and carries the rebound evidence; rebase onto the
+target; rebind the evidence of every commit the rewrite produced, not only the
+reworded ones, since folding and rebasing change trees (grounded-commits,
+*After a rewrite*); sign the rewritten commits as you make them where the
+repository keeps author signatures (`commit.gpgsign`, or `-S` on the rebase),
+since a rewrite replaces the signed objects; and push once. A branch that
+contains merge commits keeps them with `--rebase-merges` under every method
+but a rebase landing, which lands only a linear branch and on GitHub rewrites
+every commit; there they are deliberately flattened, with what each merge
+alone carried kept and the cumulative patch compared against the reviewed
+head's. Under squash or a merge commit the landed message is supplied
+explicitly: for a squash, one message composed in the commit format from the
+branch's commits, with evidence rebound to the landed tree; for a merge
+commit, the pull-request title alone. Never the forge's default, and never
+this body. A pull request from a fork lands by the route the repository's
+guidance records: rebased as written, squashed with a composed message, or
+reworded; whatever the route, the prepared branch must become the pull
+request's head, so push it to the contributor's branch where they allow edits
+from maintainers, or ask them to push it; with no route recorded, ask the
+user. Which method the repository uses, what each does to the commits and the
+forge settings for it are in `references/landing.md`, relative to this skill's
 directory: fast-forward is the default and rebase the fallback a repository
 chooses once where its landing identity may not push to the target, which on
 GitHub lands new commits without your signatures, as a squash does everywhere.
