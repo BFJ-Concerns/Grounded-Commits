@@ -39,8 +39,9 @@ Markdown. GitHub renders a single newline as a line break, so write each
 paragraph on one line. Leave out any section with nothing to say; a heading
 followed by filler is a defect. Essential facts go in visible prose, never in
 HTML comments, collapsed sections or images, which a reader or tool may not
-expand. The reverse holds too: output pasted around a fact buries it, so
-anything long sits in a collapsed block beneath the sentence that says what
+expand. The reverse holds too: a fact surrounded by pasted output is as good
+as hidden, so the body carries no output at all, and a comment that must
+carry some puts it in a collapsed block beneath the sentence that says what
 it shows.
 
 1. **Lead** (always, no heading). One or two sentences: the problem or request
@@ -68,11 +69,11 @@ it shows.
    environment and the commit shown. What you observed when you ran it is a
    `Verified:` line on the commit, not a sentence here.
 5. **`### Not in this PR`** (when the request asked for more than the branch
-   delivers, or when something a reviewer would expect is deliberately
-   absent). Each item with its disposition: the URL of the issue that tracks
-   it, "not planned", or "no issue exists". Invent nothing. This describes the
-   branch as a whole: what one commit leaves undone and a later commit on the
-   branch delivers does not appear.
+   delivers, when a review round removed something from the branch, or when
+   something a reviewer would expect is deliberately absent). Each item with
+   its disposition: the URL of the issue that tracks it, "not planned", or
+   "no issue exists". Invent nothing. This describes the branch as a whole:
+   an item a later commit on the branch delivers is not listed.
 
 Soft upper bounds: one commit, about 50 words; a series, 150; several
 separate outcomes, 250. Going over is the reviewer's cue to look for
@@ -94,8 +95,8 @@ narration, repetition or assurance.
   next push replaces. Name commits by subject.
 - A closing or reopening keyword before an issue reference, in the title or the
   body. Link plainly; close by hand after landing.
-- Model names, session paths, plan steps, tracking codes, CI control tokens,
-  and instructions to future readers or agents.
+- Model names, session paths, plan steps, tracking codes, work diaries, CI
+  control tokens, and instructions to future readers or agents.
 
 ## During review
 
@@ -132,49 +133,52 @@ squashed with a composed message, or reworded on the contributor's branch
 only where they allow edits from maintainers; with no route recorded, ask
 the user.
 
-Either way, comment once the push is up. The forge records that the head
-moved, not whether anything changed: its compare view shows the diff, not
-what happened to the messages, and it may stop resolving once the old head
-is pruned. One sentence carries the record: the reviewed head's hash, what
-the push did (folded, reworded, rebased), and whether what lands is what was
-reviewed:
+Either way, if anything was pushed after approval, comment once the push is
+up. The forge records that the head moved, not whether anything changed: its
+compare view shows the diff, not what happened to the messages, and it may
+stop resolving once the old head is pruned. One sentence carries the record:
+the reviewed head's hash, what the push did (folded, reworded, rebased), and
+whether what lands is what was reviewed:
 
 - **Tree identical.** `git rev-parse <reviewed-head>^{tree} HEAD^{tree}`
-  prints one hash twice. Say so, then name each commit whose message
-  changed, by a fragment of its subject in quotes, with what changed in it,
-  or say no message changed.
+  prints one hash twice: the code that lands is the code that was approved.
+  Say so, then name each commit whose message changed, by a fragment of its
+  subject in quotes, with what changed in it, or say no message changed.
+  Where any commit changed, by a fold, a reword or a reorder, attach
+  `git range-diff <target> <reviewed-head> HEAD`, which shows the change
+  commit by commit and carries no drift when the tree is identical.
 - **Tree differs.** `git range-diff <target> <reviewed-head> HEAD` shows the
   change commit by commit, messages included. Say what it shows, by commit:
   the target's drift in context lines and nothing else, a fix-up folded in,
-  a hunk dropped, a message reworded. Where the reviewed head is a merge
-  commit that landing flattened, `git range-diff` skips the merge and
-  reports its resolution as change; compare the branch's patch instead,
+  a hunk dropped, a message reworded; attach it.
+- **Flattened merge.** Where the reviewed head is a merge commit that landing
+  flattened, `git range-diff` skips the merge and reports its resolution as
+  change. Compare the branch's patch instead,
   `git diff $(git merge-base <target> <reviewed-head>) <reviewed-head>`
-  against `git diff <target> HEAD`, and report that. A branch that keeps its
-  merge commits (`--rebase-merges`) passes `--remerge-diff`, or changes to
-  the merge commits' messages go unreported.
+  against `git diff <target> HEAD`, and the messages, `git log --format=%B`
+  over `<target>..<reviewed-head>` and over `<target>..HEAD`; say what each
+  shows and attach them. A branch that keeps its merge commits
+  (`--rebase-merges`) passes `--remerge-diff` to `git range-diff`, or changes
+  to the merge commits' messages go unreported.
 
-Attach only what changed, and only inside a collapsed block, a `<details>`
-element whose `<summary>` names the command, with a blank line after the
-summary so the fenced block inside renders, so it never floods the thread:
-the messages' diff when only messages changed (`git log --format=%B` over
-`<target>..<reviewed-head>` and over `<target>..HEAD`, compared), the
-range-diff when the tree differs. Never paste `git diff <reviewed-head>
-HEAD`: after a rebase it is the target's drift, which says nothing about the
-branch. For example:
+An attachment sits inside a collapsed block, a `<details>` element whose
+`<summary>` names the command, with a blank line after the summary so the
+fenced block inside renders, which GitHub and Forgejo both need. Never paste
+`git diff <reviewed-head> HEAD`: after a rebase it mixes the target's drift
+with any change to the branch and cannot tell them apart. For example:
 
 ```
-Folded both fix-ups into "stream CSV exports"; main had not moved. Reviewed head 3e7a1c5; tree identical; "stream CSV exports" reworded with the Verified line for the re-run, no other message changed.
+Reviewed head 3e7a1c5: folded the two fix-ups into their commits, main had not moved, tree identical; "stream CSV exports" reworded with the Verified line for the re-run, no other message changed (range-diff attached).
 ```
 
-Re-run the checks on the new tip or record the gap with `Not-verified:`.
-Ready to land means: no
-open question in the body, `Not in this PR` current, every commit message
-true of its folded contents, the forge not showing draft state, the required
-approvals present, and the required checks passing on the exact head that
-will land. Where the landing method rewrote the commits, read the landed
-messages back (`git log --format=%B <range>`) and compare them with what was
-pushed. After landing, close each fully delivered issue by hand, in a
+Re-run the checks on the new tip or record the gap with `Not-verified:`. Ready
+to land means: no open question in the body, `Not in this PR` current, every
+commit message true of its folded contents, the forge not showing draft state,
+for a rebase or fast-forward landing the branch still on the target's current
+tip, the required approvals present, and the required checks passing on the
+exact head that will land. Where the landing method rewrote the commits, read
+the landed messages back (`git log --format=%B <range>`) and compare them with
+what was pushed. After landing, close each fully delivered issue by hand, in a
 comment naming the landed commit.
 
 ## Examples

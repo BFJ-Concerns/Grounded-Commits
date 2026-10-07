@@ -156,14 +156,16 @@ scheduler: stop running a job twice when a worker shuts down
   layout directories such as `src`, `lib`, `app` and `include` together with a
   lone subdirectory directly beneath one, and the reverse-domain package root
   under `java`. So `internal/scheduler/worker.go` gives `scheduler`,
-  `src/mypkg/cli.py` gives `cli`, `app/models/user.rb` gives `models`,
-  `src/main/java/com/acme/billing/Invoice.java` gives `billing`, and a root
-  `README.md` gives `readme`. The rule reads only the paths and the tracked
+  `src/mypkg/cli.py` gives `cli` while `mypkg` is the only directory under
+  `src`, `app/models/user.rb` gives `models` beside other directories under
+  `app`, `src/main/java/com/acme/billing/Invoice.java` gives `billing`, and a
+  root `README.md` gives `readme`. The rule reads only the paths and the tracked
   directory tree, so the one change elsewhere that moves an area is a layout
-  directory gaining a second subdirectory. Lower case, at most 24
+  directory gaining or losing its second subdirectory. Lower case, at most 24
   characters. A change across everything uses `all`. Type words such as
-  `feat`, `fix` or `chore` are never areas, and a bare `docs`, `test` or
-  `build` is one only when it names a directory. Derivation is a default; a
+  `feat`, `fix` or `chore` are never areas, and a bare `ci`, `docs`, `test`,
+  `tests` or `build` is one only when it names a directory, a path-map label
+  or a listed area. Derivation is a default; a
   repository it does not fit writes a path map. The hook prints the
   candidates: `python3 .git/hooks/commit-msg --areas`.
 - **Outcome** says what is now true. It begins in lower case, identifiers keep
@@ -275,7 +277,9 @@ GitHub and GitLab, the configured `WIP:` prefix on Forgejo and Gitea.
 ### Body
 
 A lead of one or two sentences, then up to four sections. A section with nothing
-to say is left out; a heading followed by filler is a defect.
+to say is left out; a heading followed by filler is a defect. Essential facts go
+in visible prose, never in HTML comments, collapsed sections or images, and
+output never goes in the body at all.
 
 | Part | When | What it holds |
 |---|---|---|
@@ -283,7 +287,7 @@ to say is left out; a heading followed by filler is a defect.
 | **Read** | Several commits, a stacked PR, or a diff whose shape is not obvious | Which commits prepare and which change behaviour; where to start; for a stacked PR, its base and the PR it depends on |
 | **Check** | When there is something specific | What to scrutinise; a gap or a break a commit records, in one line naming the commit by subject; questions for the reviewer, with what depends on the answer |
 | **Try** | When the change can be exercised or seen | Steps to try it and what each should show; captioned screenshots. What the author observed is on the commit. |
-| **Not in this PR** | When the request asked for more than the branch delivers, or a reviewer would expect something that is deliberately absent | Each item, with a link to the issue that tracks it, "not planned" or "no issue exists" |
+| **Not in this PR** | When the request asked for more than the branch delivers, a review round removed something from the branch, or a reviewer would expect something that is deliberately absent | Each item, with a link to the issue that tracks it, "not planned" or "no issue exists" |
 
 Length limits are soft upper bounds: about 50 words for one commit, 150 for a
 series, and 250 for several separate outcomes.
@@ -300,8 +304,8 @@ series, and 250 for several separate outcomes.
   rise.
 - Checklists. A tick is not evidence, and some bots treat a ticked box as a
   command.
-- Instructions to automated reviewers or to future readers, and claims that a
-  reviewer agreed.
+- Instructions to automated reviewers or to future readers or agents, and claims
+  that a reviewer agreed.
 - Commit hashes or CI links as pointers to the current head, which the next
   push replaces. Name commits by their subject.
 - Issue-closing keywords. Link issues plainly, and close them by hand after
@@ -362,16 +366,19 @@ onto the target, pushed once with a one-sentence comment saying whether the
 tip's tree and messages still match the reviewed head, and landed so that each
 commit's message survives. Where the forge offers a fast-forward (GitLab,
 Forgejo, Gitea, plain Git) the hashes survive too. GitHub's **Rebase and merge**
-gives the same history with new hashes. Merge commits work when the merge
-message is set to the pull-request title only. Squashes work when the landing
-agent composes the squash message in the commit format from the branch's
-commits and supplies it explicitly, so the pull-request body never becomes a
-commit message.
+gives the same history with new hashes. Rebase and squash create new commits,
+so signatures on the branch's commits do not survive them; a repository that
+signs its commits lands by fast-forward or merge commit. Merge commits work
+when the merge message is set to the pull-request title only. Squashes work
+when the landing agent composes the squash message in the commit format from
+the branch's commits and supplies it explicitly, so the pull-request body never
+becomes a commit message.
 
-Whatever the method, three things hold: under fast-forward, rebase and merge
+Whatever the method, four things hold: under fast-forward, rebase and merge
 commits every message lands as written or as deliberately reworded, and under
 squash the one landed message is composed from them, never taken from the
-forge's default; nothing from the pull-request body enters history; and issues
+forge's default; nothing from the pull-request body enters history; the landing
+comment says whether the landed tip still matches the reviewed head; and issues
 are closed by hand after landing. The methods, their costs and the settings for
 each forge are in [`guidance/landing.md`](guidance/landing.md), including the
 one way to fast-forward on GitHub and what to do with pull requests from forks.
@@ -484,9 +491,10 @@ not included.
 
 The finished guidance under [`guidance/`](guidance/) departs from the research
 drafts in a few places, each noted at the top of the draft it supersedes: the
-`Introduced-by:` key, the area derivation, the
-pull-request lead and `Try` wording, and landing as an optional part with
-rebase as the default rather than a fast-forward push. The pull-request report
+`Introduced-by:` key, the area derivation, the pull-request lead and the
+`Check`, `Try` and `Not in this PR` wording, the one-sentence landing comment,
+and landing as an optional part with rebase as the default rather than a
+fast-forward push. The pull-request report
 also says its cited reviewer experiment had no result for commercial
 reviewers; the package does include a closed model, which showed no rise in
 approvals.

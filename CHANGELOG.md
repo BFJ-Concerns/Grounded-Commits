@@ -2,44 +2,55 @@
 
 ## Unreleased
 
-- The pull-request guidance says essential facts go in visible prose, never
-  in HTML comments, collapsed sections or images, and that output pasted
-  around a fact buries it, so anything long sits in a collapsed block beneath
-  the sentence that says what it shows. Its list of what never goes in the
-  body includes instructions to future readers or agents. The commit guidance
-  states Git's rule for a mixed final paragraph (at least a quarter trailers,
-  one of them Git-generated or configured). The landing guidance's rebase
-  row says to land only a branch already on the target's tip, so the
-  replayed trees are the checked trees. The research note records why
-  `Fixes:` became `Introduced-by:`.
+- The pull-request guidance's *Before landing* comment is one sentence: the
+  reviewed head, what the push did, and whether the landing tip's tree is
+  identical to the reviewed head's, with each reworded commit named by
+  subject. Evidence sits only inside a collapsed `<details>` block, with the
+  blank line after the summary that GitHub and Forgejo both need before a
+  fenced block renders: the `git range-diff` when any commit changed, or the
+  branch's patches and messages compared where the reviewed head was a merge
+  that landing flattened, which range-diff cannot pair. `git diff
+  <reviewed-head> HEAD` is never pasted: after a rebase it mixes the target's
+  drift with any change to the branch. Before, the section asked for the
+  output of both commands on every landing, and on a flattened merge head
+  one comment ran to 18 KB with thirty lines of signal. The guidance also
+  says essential facts go in visible prose, never in HTML comments,
+  collapsed sections or images, and that the body carries no output at all;
+  its list of what never goes in the body includes work diaries and
+  instructions to future readers or agents; `Not in this PR` also covers
+  what a review round removed from the branch; and ready to land includes,
+  for a rebase or fast-forward landing, the branch still sitting on the
+  target's current tip.
 - The commit body has no `Not done:` line, and the hook no longer checks for
   one. What the request asked for and the branch does not deliver is a
   property of the pull request, recorded under `Not in this PR`; the
   pull-request research rejected a per-commit line on that ground, and the
   commit guidance had added one without recording a reason. A commit's own
-  limits stay in its body as prose.
-- The area derivation's prose says what the hook does. A `docs/`, `test/`,
-  `build/` or `ci/` directory is an area; a file whose stem reads as one of
-  those, or as a change-type word, keeps its extension (`build.gradle`,
+  limits stay in its body as prose, and a composed squash message carries
+  what `Not in this PR` recorded among its limits.
+- The area derivation's prose says what the hook does. A `ci/`, `docs/`,
+  `test/`, `tests/` or `build/` directory is an area, as is any of those
+  names as a path-map label or listed area; a file whose stem reads as one
+  of those, or as a change-type word, keeps its extension (`build.gradle`,
   `fix.py`); a directory named for a change type gives `all`. Before, the
   guidance said a directory of any of those names gave `all`, which the hook
-  never did. The README no longer claims an area never moves when unrelated
-  files are added: the only-subdirectory rule reads the tracked tree, so a
-  layout directory gaining a second subdirectory moves the area beneath it,
-  and the guidance now says so. The research note records why the derivation
-  goes beyond the report's one-line rule.
-- The pull-request guidance's *Before landing* comment is one sentence: the
-  reviewed head, what the push did, and whether the landing tip's tree is
-  identical to the reviewed head's, with each reworded commit named by
-  subject. Evidence is attached only when something changed and only inside
-  a collapsed `<details>` block: the messages' diff when only messages
-  changed, the `git range-diff` when the tree differs. Before, the section
-  asked for the output of `git diff <reviewed-head> HEAD` and `git
-  range-diff` on every landing; after a rebase the first is the target's
-  drift and the second repeats it as context, and on a branch whose
-  reviewed head was a merge commit that landing flattened, one comment ran
-  to 18 KB with thirty lines of signal. `landing.md`, the README and the
-  plugin's pull-request skill say the same.
+  never did. The hook itself gains two corrections: an extensionless root
+  file named `build`, `test`, `docs`, `ci` or `tests` yields `all` rather
+  than the bare word, and `__init__.py` yields its directory's name as the
+  guidance always said (the stem was compared with its underscores stripped
+  against a set that kept them). The README no longer claims an area never
+  moves when unrelated files are added: the only-subdirectory rule reads the
+  tracked tree, so a layout directory gaining or losing its second
+  subdirectory moves the area beneath it, and the guidance says so. The
+  research note records why the derivation goes beyond the report's
+  wrapper-stripping rule, and why `Fixes:` became `Introduced-by:`.
+- The landing guidance says signed commits survive only fast-forward and
+  merge commits, and that a rebase landing takes only a linear branch
+  rebased onto the target's current tip, so each replayed tree is a checked
+  tree; GitHub's and Forgejo's up-to-date protections accept a merge from
+  the target, so update by rebase. The commit guidance states Git's rule for
+  a mixed final paragraph (at least a quarter trailers, one of them
+  Git-generated or named in Git configuration).
 
 ## 0.2.0 — 2026-10-07
 

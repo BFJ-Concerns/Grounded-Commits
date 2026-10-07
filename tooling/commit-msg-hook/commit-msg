@@ -61,15 +61,17 @@ AREA_RE = re.compile(r"^[a-z0-9][a-z0-9._/-]{0,23}$")
 SUBJECT_RE = re.compile(r"^([^:\s]+): (\S.*)$")
 TYPED_SUBJECT_RE = re.compile(r"^(feat|fix|perf|refactor|docs|test|build|ci)\(([^)]*)\)(!?): (\S.*)$")
 TYPE_WORDS = {"feat", "fix", "perf", "chore", "refactor", "style", "revert"}
-# From a file these use the full file name instead; as a directory they are `all`.
+# Areas when they name a directory, a path-map label or a listed area. From a
+# file the full file name is used instead, and a bare one yields nothing.
 DIRECTORY_ONLY_AREAS = {"ci", "docs", "test", "tests", "build"}
 LAYOUT_WRAPPERS = {"src", "source", "sources", "lib", "libs", "include", "app", "main", "java", "kotlin", "scala"}
 TEST_UNDER_LAYOUT = {"test", "tests"}
 JVM_LAYOUT = {"java", "kotlin", "scala"}
 CODE_HOSTS = {"github", "gitlab", "bitbucket", "codeberg", "sourceforge"}
 COLLECTION_WRAPPERS = {"packages", "apps", "crates", "modules", "services", "cmd", "pkg", "internal"}
-# A file that stands for its directory yields the directory's name.
-DIRECTORY_FILES = {"__init__", "mod", "index", "lib", "main"}
+# A file that stands for its directory yields the directory's name; stems are
+# compared with their underscores stripped, so `__init__` matches `init`.
+DIRECTORY_FILES = {"init", "mod", "index", "lib", "main"}
 
 REVERT_RE = re.compile(r'^(Revert|Reapply) ".+"$')
 AUTOSQUASH_PREFIXES = ("fixup! ", "squash! ", "amend! ")
@@ -336,6 +338,8 @@ def file_area(name, dirs):
         return None
     if candidate in TYPE_WORDS or candidate in DIRECTORY_ONLY_AREAS:
         candidate = normalise(name)
+        if candidate in TYPE_WORDS or candidate in DIRECTORY_ONLY_AREAS:
+            return None
     return candidate or None
 
 

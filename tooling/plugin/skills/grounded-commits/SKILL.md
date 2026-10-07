@@ -136,7 +136,9 @@ scope named here.
 The trailers form one final block after a blank line, with no blank line
 inside it and every wrapped line indented. Git reads only the last paragraph
 as trailers, so a trailer above a blank line is silently lost, and a block
-with an unindented wrapped line is usually not read at all.
+with an unindented wrapped line is usually not read at all (Git reads a mixed
+final paragraph as trailers only when at least a quarter of its lines are
+trailers and one of them is Git-generated or named in Git configuration).
 
 ```
 Verified: <tested contents>; <command or scenario>; <observed outcome>
