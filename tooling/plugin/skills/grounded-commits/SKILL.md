@@ -195,15 +195,17 @@ whoever makes the new commit owns its evidence. Keep `Verified: final
 contents` only when you re-ran the check on the new commit, or its tree is the
 tree that was tested — `git rev-parse <tested>^{tree} <new>^{tree}` prints the
 same hash twice. A message-only amend keeps the tree; a replay onto a moved
-base usually changes it, even when it applied cleanly. Otherwise rebind
-before you create the new commit: put the tested commit's hash in place of
-`final contents` (it identifies what was tested and need not stay reachable)
-and add a `Not-verified:` for the new tree scoped to the claim (`behaviour
+base usually changes it, even when it applied cleanly. Otherwise rebind before
+you create the new commit: put the tested commit's hash in place of `final
+contents` (it identifies what was tested and need not stay reachable) and add
+a `Not-verified:` for the new tree scoped to the claim (`behaviour
 preservation`, `reproduction`, `performance effect`, else `final contents`).
-Check every commit a rewrite produced, not only the tip. Rewrite only commits
-that have not landed on a shared branch: a pull-request branch is rewritten
-when its fix-ups are folded before landing, a landed commit never — report
-the problem to the user instead.
+Check every commit a rewrite produced, not only the tip; where the branch will
+land by squash, the rebinding goes into the composed message, since the
+branch's own commits do not land. Rewrite only commits that have not landed on
+a shared branch: a pull-request branch is rewritten when its fix-ups are
+folded before landing, a landed commit never — report the problem to the user
+instead.
 
 ## Native Git messages
 

@@ -35,7 +35,8 @@
   signal. Preparation applies to every method: reword and fold where the
   branch's commits land, both optional under squash alone, with an
   originally empty commit's message folded into a neighbour before a rebase
-  landing; rebase onto the target; re-apply what each kept merge carried;
+  landing; rebase onto the target, which drops a merge of the target; re-apply
+  what each other merge carried, kept or flattened;
   rebind the evidence; sign the rewritten commits where they will land and
   the repository keeps author signatures; push once. The guidance also says
   essential facts go in visible prose, never in HTML comments, collapsed
