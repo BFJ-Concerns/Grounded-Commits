@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 — 2026-10-08
 
 - Where a request came from is a person or role, an issue, or a document a
   reader of the repository can open, never the tool, review or model that
