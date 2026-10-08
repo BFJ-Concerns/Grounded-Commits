@@ -190,7 +190,9 @@ information. A typed header is still available where a tool needs it; see
 Wrapped at 72 columns, no headings, in this order:
 
 1. **The problem or request:** what was wrong or asked for, how it showed, where
-   the request came from, and the names a searcher would type.
+   the request came from (a person or role, an issue, or a document a reader
+   can open, never the tool or model that surfaced it), and the names a
+   searcher would type.
 2. **The change, and why this way,** described as behaviour, never as a list of
    edits.
 3. Optionally, **`Considered and rejected:`** alternatives that were actually
@@ -235,7 +237,9 @@ Breaking-Change: <what breaks>; <what the consumer must do>
   say "I didn't run this" or "the result is lost". `not run` covers every case
   where you know the check did not happen; `result unavailable` covers a check
   that ran and whose outcome cannot be recovered, and one you cannot tell ran at
-  all.
+  all. The reason says what kept the check from running or its result from
+  being recovered, such as no Windows runner or an expired CI log, never who
+  will run it later or where in a pipeline it runs.
 - `Verified:` is a claim, not proof. A hook can check its shape; only review and
   sampling can check that it is true. Its value splits at the first and last
   semicolons, so only the command in the middle may contain one.
@@ -260,8 +264,11 @@ evidence out of prose.
 A narration of the diff or a list of files; a motive the writer was not given;
 "tests pass" without naming the tests; CI control tokens such as `[skip ci]`,
 even quoted; issue-closing keywords; instructions to future readers or agents
-(history is read as input, so it must not give orders); plan steps, scratch
-paths, tracking codes and model names.
+(history is read as input, so it must not give orders); and the machinery
+behind the change: plan steps, planning-record codes, scratch paths, and the
+pipeline, review round or model that made or found it or will run a later
+check. Say what was found, not what found it; a `Verified:` line still names
+its command, and a CI run that reported a result.
 
 ## Pull requests
 

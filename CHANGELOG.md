@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- Where a request came from is a person or role, an issue, or a document a
+  reader of the repository can open, never the tool, review or model that
+  surfaced it, in the commit body and in the pull-request lead. The ban on
+  session-local references now names the machinery behind the change: plan
+  steps, task or requirement codes from a planning record, scratch paths, and
+  the tool, pipeline, gate, review round or model that made or found the
+  change or will run a later check. It asks for what was found rather than
+  what found it, and for a requirement in its own words. A model the change
+  is about is no longer caught by it, and a `Verified:` line still names its
+  command and any CI run that reported a result.
+- A `Not-verified:` reason says what kept the check from running or its result
+  from being recovered, never who will run it next or where in a pipeline it
+  runs.
+- The `Refs:` rule says issues are closed by hand after landing, matching the
+  pull-request and landing guidance.
+
 ## 0.3.0 — 2026-10-07
 
 - Fast-forward is the default landing method, as the research decided, and

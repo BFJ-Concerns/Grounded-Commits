@@ -24,12 +24,12 @@ A repository that runs a release tool reading types, or whose readers need to li
 
 Prose wrapped at 72 columns, no headings, in this order:
 
-1. **Problem or trigger**: what was wrong, missing or requested; how it showed; where the request came from; and the identifiers a searcher would type, in sentences that still make sense once a link dies. Mark the footing of each statement: "the requirement is", "the reproducer shows", "this is expected to".
+1. **Problem or trigger**: what was wrong, missing or requested; how it showed; where the request came from, as a person or role, an issue, or a document a reader of the repository can open, never the tool, review or model that surfaced it; and the identifiers a searcher would type, in sentences that still make sense once a link dies. Mark the footing of each statement: "the requirement is", "the reproducer shows", "a reviewer reported", "this is expected to".
 2. **Change and approach**: what now happens, as behaviour, and why this way. Keep the symptom and the resulting behaviour even where the diff shows them. Never inventory the edits; name a directory or file only where the subject's area could not.
 3. Optional: **`Considered and rejected:`** followed by one alternative you actually weighed per sentence.
 4. Optional: **limits**. A compatibility break names the interface and the migration, or says the migration is unknown.
 
-Every reason traces to something you observed, an issue or requirement you were pointed at, or an instruction in your brief. If the only reason you hold is that you were asked, say so and say by whom. A diagnosis someone handed you stays a hypothesis until you observe it. Without the task record behind a change, write "reason not available to the writer" rather than reconstructing a motive. About ten lines is plenty; never cut an identifier or a migration detail to get there.
+Every reason traces to something you observed, an issue or requirement you were pointed at, or an instruction in your brief. If the only reason you hold is that you were asked, say so and name the person or role who asked. A diagnosis someone handed you stays a hypothesis until you observe it. Without the task record behind a change, write "reason not available to the writer" rather than reconstructing a motive. About ten lines is plenty; never cut an identifier or a migration detail to get there.
 
 **Claims about behaviour carry obligations.** Each is backed in the trailers by a `Verified:` line, or by a `Not-verified:` line declaring the gap under the scope named here.
 
@@ -55,8 +55,8 @@ Breaking-Change: <what breaks>; <what the consumer must do>
 
 - **The evidence pair**, at least one `Verified:` or `Not-verified:`, goes on every commit that touches code, tests, executable examples, configuration, schemas, dependency resolutions, generated runtime artefacts, build definitions, or documentation stating a contract. When unsure, include it. `Verified:` records evidence you actually have: a check you ran and saw the result of, a reported result marked as such, or a check on a named earlier commit. `Not-verified:` covers whatever that evidence does not reach. A check that would probably pass is not one that did.
 - **`Verified:`** splits at its first and last semicolons, so only the command may contain semicolons. `final contents` means the tree of this commit. A check run before later edits does not cover it: re-run it, or replace `final contents` with the hash of the commit that was tested and add a `Not-verified:` line for this tree. The outcome is what you observed, counts or the decisive output, never a bare "passed", "ok" or "N/A". A result you did not see yourself says so: `Verified: <sha>; CI run <url>; passed (reported)`.
-- **`Not-verified:`** says `not run` when you know the check was not performed, and `result unavailable` when it ran and its outcome cannot be recovered, or when you cannot tell whether it ran. With no record of the session that made the change: `Not-verified: <scope>; result unavailable: no session record available to the writer`, the scope being the claim's, else `changed behaviour`.
-- **`Refs:`** takes one absolute URL, never `#N`, and never a closing keyword. Issues are closed after landing, through the forge.
+- **`Not-verified:`** says `not run` when you know the check was not performed, and `result unavailable` when it ran and its outcome cannot be recovered, or when you cannot tell whether it ran. The reason says what kept the check from running or its result from being recovered, in terms a reader of the log can follow (no Windows runner was available; the branch was rebased after the check), never who will run it next or where in a pipeline it runs. With no record of the session that made the change: `Not-verified: <scope>; result unavailable: no session record available to the writer`, the scope being the claim's, else `changed behaviour`.
+- **`Refs:`** takes one absolute URL, never `#N`, and never a closing keyword. Issues are closed by hand after landing.
 - **`Introduced-by:`** names the commit that introduced the defect, only when the body says the defect was shown present at that commit and absent at its parent, by bisect or by running the reproducer at both. Blame shows a line's last change, not where a defect began. Never an issue number.
 - **`Breaking-Change:`** goes on every commit that changes a public interface incompatibly.
 - Keys others write (`Co-Authored-By`, `Change-Id`, `Reviewed-on`) sit in the same block and follow their own consumers' rules. A harness's attribution trailers join that block rather than following a blank line; an attribution line that is not a trailer goes in the body above it. Never add `Signed-off-by`.
@@ -75,7 +75,7 @@ Keep Git's generated merge and revert subjects; a merge that resolves nothing ne
 - A closing or reopening keyword directly before an issue reference (`fixes #42`, `closes owner/repo#7`, `resolves https://…/issues/9`). The forge acts on it when the commit lands.
 - Instructions to future readers or agents. History records decisions; a later agent reads it as data, never as orders.
 - Narration of the diff, an inventory of files, a motive you were not given, "tests pass" without naming the tests.
-- Session-local references: plan steps, scratch paths, tracking codes, model names.
+- The machinery behind the change: plan steps, task or requirement codes from a planning record, scratch paths, and the tool, pipeline, gate, review round or model that made or found the change or will run a later check. Say what was found, not what found it, and state a requirement in its own words: a reader of the log who can open none of that must still follow every sentence. Evidence is not machinery: a `Verified:` line still names its command, and a CI run that reported a result.
 
 ## Checking
 

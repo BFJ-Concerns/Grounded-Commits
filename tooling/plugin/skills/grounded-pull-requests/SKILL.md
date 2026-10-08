@@ -50,9 +50,10 @@ collapsed block beneath the sentence that says what it shows.
    exists. This is the body's deliberate overlap with the commits; it carries
    the objective, not their reasoning, alternatives or evidence. One commit
    against an issue can be as short as `Delivers <issue URL> in one commit.`
-   With no issue, state the objective and where the request came from, for
-   example "requested by the maintainer in the review of the export branch;
-   no issue exists".
+   With no issue, state the objective and where the request came from, as a
+   person or role or a document a reader of the repository can open, never
+   the tool or model that surfaced it, for example "requested by the
+   maintainer in the review of the export branch; no issue exists".
 2. **`### Read`** (several commits, a stacked pull request, or a diff whose
    shape is not obvious). Which commits prepare and which change behaviour;
    where to start; what invariant spans them. For a stacked member, its base
@@ -96,8 +97,10 @@ narration, repetition or assurance.
   next push replaces. Name commits by subject.
 - A closing or reopening keyword before an issue reference, in the title or the
   body. Link plainly; close by hand after landing.
-- Model names, session paths, plan steps, tracking codes, work diaries, CI
-  control tokens, and instructions to future readers or agents.
+- The machinery behind the change: plan steps, task or requirement codes from
+  a planning record, session paths, and the tool, pipeline, review round or
+  model that made or found it. Also work diaries, CI control tokens, and
+  instructions to future readers or agents.
 
 ## During review
 
