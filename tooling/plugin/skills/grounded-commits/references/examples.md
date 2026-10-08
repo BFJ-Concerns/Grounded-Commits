@@ -46,8 +46,8 @@ Verified: 9f3c1a2b7d4e^, 9f3c1a2b7d4e and final contents;
   go test ./scheduler/... -run TestShutdownOrdering -count=50;
   0 of 50, 7 of 50 and 0 of 50 runs failed respectively
 Verified: final contents; go test ./...; all packages passed
-Not-verified: replay against the production incident data; result
-  unavailable: the data is not retained outside the billing environment
+Not-verified: replay against the production incident data; not run:
+  the data is not retained outside the billing environment
 Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
   shutdown")
 Refs: https://forge.example/ops/billing/issues/301

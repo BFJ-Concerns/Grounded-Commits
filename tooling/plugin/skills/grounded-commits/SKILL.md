@@ -260,12 +260,14 @@ report. For a draft, write the message to a file outside the work tree.
 
 Where the repository's own `commit-msg` hook is the reference hook, Git runs
 it on every commit and rejects a message with findings: rewrite the message
-and commit again. Where it is not installed, run `--rev HEAD` yourself after
-each commit and before pushing — so never chain a push onto the commit
-command — and tell the user once that installing the hook would check every
-commit in the repository whatever tool makes it. Install it when the user
-agrees or is adopting the format. The hook's path is what `git rev-parse
---git-path hooks/commit-msg` prints, which honours `core.hooksPath`. With no
+and commit again. It sees only the staged changes, so after
+`git commit --amend` with new changes staged, run `--rev HEAD` as well. Where
+it is not installed, run `--rev HEAD` yourself after each commit and before
+pushing — so never chain a push onto the commit command — and tell the user
+once that installing the hook would check every commit in the repository
+whatever tool makes it. Install it when the user agrees or is adopting the
+format. The hook's path is what `git rev-parse --git-path hooks/commit-msg`
+prints, which honours `core.hooksPath`. With no
 file there, copy `scripts/commit-msg` to that path and make it executable.
 Where a hook already exists there, keep it: copy the checker beside it under
 another name and add a line to the existing hook that runs `python3
