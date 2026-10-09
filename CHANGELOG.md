@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.2 — 2026-10-09
+
+- The hook judges what a merge resolved by comparing it with Git's own merge
+  of its parents, so a clean merge of a file both sides changed passes with no
+  body and no evidence pair, and a conflict resolved by keeping one side is
+  asked for both. Checking a merge needs Git 2.38 or newer; an octopus merge
+  is still checked against the paths that differ from every parent.
+- The hook flags Git's `# Conflicts:` list kept in a recorded message, which
+  a commit made without the editor keeps, and no longer counts it as a body.
+
 ## 0.3.1 — 2026-10-08
 
 - Where a request came from is a person or role, an issue, or a document a

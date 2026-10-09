@@ -1,6 +1,6 @@
 # Grounded Commits
 
-**Version 0.3.1** · [Changelog](CHANGELOG.md) · MIT licence
+**Version 0.3.2** · [Changelog](CHANGELOG.md) · MIT licence
 
 A commit-message format, and a pull-request convention to go with it, for
 repositories where coding agents write most of the commits, open most of the
