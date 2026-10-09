@@ -33,7 +33,7 @@ how branches land.
    format, and elsewhere apply only when asked.
 2. **Install the hook**, which checks the mechanical rules and tells the agent
    which areas a change could use. In the repository that is adopting the
-   format, with Python 3.8 or newer available:
+   format, with Python 3.8 or newer and Git 2.38 or newer available:
    ```sh
    curl -fsSL -o .git/hooks/commit-msg \
      https://raw.githubusercontent.com/BFJ-Concerns/Grounded-Commits/main/tooling/commit-msg-hook/commit-msg

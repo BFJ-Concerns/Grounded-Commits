@@ -29,9 +29,11 @@ Exit 0 when clean, 1 with findings (one per line on stderr), 2 on error.
 
 Limits of hook mode: it sees the staged changes, so `git commit --amend` with
 new changes staged is checked against those changes only; run `--rev HEAD`
-after an amend. A merge in progress is checked against its conflict
-resolutions; `--rev` on a merge sees only resolutions that differ from every
-parent.
+after an amend. A merge, in progress or recorded, is checked against the
+paths where it departs from Git's own merge of its parents: the conflicts
+resolved by hand and any edit made on top. That needs Git 2.38 or newer. An
+octopus merge, which that comparison cannot recreate, is checked against the
+paths that differ from every parent.
 
 Optional configuration in <repo>/.grounded-commits.toml (Python 3.11+):
   forge = "github" | "gitlab" | "forgejo" | "any"     # default "any"
@@ -77,6 +79,9 @@ DIRECTORY_FILES = {"__init__.py", "__main__.py", "mod.rs", "lib.rs", "main.rs", 
                    "index.mts", "index.cts"}
 
 REVERT_RE = re.compile(r'^(Revert|Reapply) ".+"$')
+# The conflict list Git appends to a merge or cherry-pick message as comment
+# lines, which a commit made without the editor keeps.
+CONFLICT_LIST_RE = re.compile(r"^(\S) Conflicts:\n(?:\1\n)?(?:\1\t.*\n?)+", re.MULTILINE)
 AUTOSQUASH_PREFIXES = ("fixup! ", "squash! ", "amend! ")
 TRIVIAL_OUTCOME_RE = re.compile(
     r"^((fix|correct) (a |the |an )?(typos?|spelling|misspellings?)\b"
@@ -186,15 +191,15 @@ def has_head(repo):
 
 def staged_paths(repo, message):
     """(paths, pure_rename, merge) for the commit being made. A merge in
-    progress is checked against its conflict resolutions: files whose staged
-    content differs from both parents. With nothing staged, a message whose
-    subject is HEAD's is taken to be a message-only amend and uses HEAD's
-    paths; otherwise (an empty commit) there are no paths."""
-    merge_head = os.path.exists(git_path(repo, "MERGE_HEAD"))
-    if merge_head:
-        ours = set(git("diff", "--cached", "--name-only", "-z", "HEAD", repo=repo).split("\0")) - {""}
-        theirs = set(git("diff", "--cached", "--name-only", "-z", "MERGE_HEAD", repo=repo).split("\0")) - {""}
-        return sorted(ours & theirs), False, True
+    progress is checked against its resolutions (see `resolution_paths`).
+    With nothing staged, a message whose subject is HEAD's is taken to be a
+    message-only amend and uses HEAD's paths; otherwise (an empty commit)
+    there are no paths."""
+    merge_head = git_path(repo, "MERGE_HEAD")
+    if os.path.exists(merge_head):
+        with open(merge_head, encoding="utf-8") as handle:
+            parents = ["HEAD"] + handle.read().split()
+        return resolution_paths(repo, parents), False, True
     paths, pure = parse_name_status(git("diff", "--cached", "--name-status", "-M", "-z", repo=repo))
     if not paths and has_head(repo):
         head_subject = git("show", "-s", "--format=%s", "HEAD", repo=repo).strip()
@@ -208,13 +213,30 @@ def commit_paths(repo, rev):
         git("diff-tree", "--no-commit-id", "--name-status", "-r", "-M", "--root", "-z", rev, repo=repo))
 
 
-def is_merge(repo, rev):
-    return len(git("show", "-s", "--format=%P", rev, repo=repo).split()) > 1
+def merged_tree(repo, ours, theirs):
+    """The tree Git's own merge of two commits produces, conflict markers and all."""
+    result = subprocess.run(["git", "-C", repo, "merge-tree", "--write-tree", "--no-messages", ours, theirs],
+                            capture_output=True, text=True, errors="surrogateescape")
+    if result.returncode not in (0, 1):  # 1 means the merge has conflicts
+        raise CheckError("git merge-tree --write-tree failed (checking a merge needs Git 2.38 or newer): "
+                         + result.stderr.strip())
+    return result.stdout.split("\n", 1)[0].strip()
 
 
-def resolution_paths(repo, rev):
-    """A merge commit's paths that differ from every parent."""
-    return [p for p in git("diff-tree", "--cc", "--name-only", "--no-commit-id", "-r", "-z", rev, repo=repo).split("\0") if p]
+def resolution_paths(repo, parents, rev=None):
+    """The paths where a merge of `parents` departs from Git's own merge of
+    them: the conflicts resolved by hand and any edit made on top. A clean
+    merge of a file both sides changed is not among them. `rev` is the merge
+    commit; without it, the staged merge. An octopus merge falls back to the
+    paths that differ from every parent."""
+    bases = [merged_tree(repo, *parents)] if len(parents) == 2 else parents
+    found = None
+    for base in bases:
+        args = ["diff-tree", "-r", "--name-only", "-z", base, rev] if rev else \
+            ["diff-index", "--cached", "--name-only", "-z", base]
+        paths = set(git(*args, repo=repo).split("\0")) - {""}
+        found = paths if found is None else found & paths
+    return sorted(found)
 
 
 def tracked_files(repo, rev=None):
@@ -561,9 +583,15 @@ def forbidden_content(message, config):
 
 def check_message(message, paths, config, tracked=(), repo=None, merge=False, pure_rename=False):
     """All findings for one message. For a merge, `paths` are its resolutions."""
+    findings = forbidden_content(message, config)
+    # Blanked rather than cut, so later findings keep the message's line numbers.
+    kept_list = CONFLICT_LIST_RE.search(message)
+    if kept_list:
+        findings.append("Git's conflict list is still in the message; delete it, and say in the body how each "
+                        "conflict was resolved")
+        message = CONFLICT_LIST_RE.sub(lambda m: "\n" * m.group(0).count("\n"), message)
     lines = message.rstrip("\n").split("\n")
     subject = lines[0].rstrip()
-    findings = forbidden_content(message, config)
     if subject.startswith(AUTOSQUASH_PREFIXES):
         return findings
     if len(lines) > 1 and lines[1].strip():
@@ -601,10 +629,11 @@ def check_message(message, paths, config, tracked=(), repo=None, merge=False, pu
 
 def rev_paths(repo, rev):
     """(sha, paths, pure_rename, merge) for an existing commit; a merge's paths
-    are its conflict resolutions."""
+    are its resolutions (see `resolution_paths`)."""
     sha = git("rev-parse", "--verify", f"{rev}^{{commit}}", repo=repo).strip()
-    if is_merge(repo, sha):
-        return sha, resolution_paths(repo, sha), False, True
+    parents = git("show", "-s", "--format=%P", sha, repo=repo).split()
+    if len(parents) > 1:
+        return sha, resolution_paths(repo, parents, sha), False, True
     paths, pure = commit_paths(repo, sha)
     return sha, paths, pure, False
 

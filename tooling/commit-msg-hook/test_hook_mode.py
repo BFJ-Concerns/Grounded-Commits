@@ -113,6 +113,57 @@ def _(repo):
     return bare.returncode != 0 and "body is missing" in bare.stderr and full.returncode == 0
 
 
+def overlapping_branches(repo, side_text, main_text):
+    """`side` and `main` each change internal/api/handler.go, which starts as
+    ten lines; the texts replace its first and last line respectively."""
+    lines = [f"line {n}\n" for n in range(10)]
+    with open(os.path.join(repo, "internal/api/handler.go"), "w") as handle:
+        handle.writelines(lines)
+    git(repo, "add", "-A")
+    assert commit(repo, "api: lay out the handler\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    for branch, index, text in (("side", 0, side_text), ("main", 9, main_text)):
+        git(repo, "checkout", "-q", "-B", branch)
+        with open(os.path.join(repo, "internal/api/handler.go"), "w") as handle:
+            handle.writelines(lines[:index] + [text] + lines[index + 1:])
+        git(repo, "add", "-A")
+        assert commit(repo, f"api: change the handler on {branch}\n\nBody.\n\n" + EVIDENCE).returncode == 0
+        if branch == "side":
+            git(repo, "checkout", "-q", "main")
+
+
+@case("a clean merge of a file both sides changed resolves nothing")
+def _(repo):
+    overlapping_branches(repo, "side\n", "main\n")
+    r = run(repo, "git", "merge", "--no-ff", "--no-edit", "-q", "side")
+    return r.returncode == 0 and hook(repo, "--rev", "HEAD").returncode == 0
+
+
+@case("a conflict resolved by keeping one side still needs a body")
+def _(repo):
+    git(repo, "checkout", "-q", "-b", "side"); write(repo, "internal/api/handler.go", "side\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: side change\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    git(repo, "checkout", "-q", "main"); write(repo, "internal/api/handler.go", "main\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: main change\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    run(repo, "git", "merge", "--no-ff", "side")  # conflicts
+    git(repo, "checkout", "--ours", "internal/api/handler.go"); git(repo, "add", "-A")
+    r = commit(repo, "Merge branch 'side'\n")
+    return r.returncode != 0 and "body is missing" in r.stderr
+
+
+@case("--rev on a merge that kept Git's conflict list asks for a body")
+def _(repo):
+    git(repo, "checkout", "-q", "-b", "side"); write(repo, "internal/api/handler.go", "side\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: side change\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    git(repo, "checkout", "-q", "main"); write(repo, "internal/api/handler.go", "main\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: main change\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    run(repo, "git", "merge", "--no-ff", "side")  # conflicts
+    write(repo, "internal/api/handler.go", "resolved\n"); git(repo, "add", "-A")
+    assert run(repo, "git", "commit", "-q", "--no-edit", "--no-verify").returncode == 0
+    r = hook(repo, "--rev", "HEAD")
+    return (r.returncode == 1 and "conflict list" in r.stderr and "body is missing" in r.stderr
+            and "heading" not in r.stderr)
+
+
 @case("an empty commit after a code commit is not mistaken for an amend")
 def _(repo):
     r = commit(repo, "all: mark the release point\n\nThe requirement is a tag anchor.\n", "--allow-empty")

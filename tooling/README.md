@@ -7,8 +7,8 @@ in [`../guidance/`](../guidance/).
 
 The reference `commit-msg` hook: one Python 3 file (3.8 or newer; 3.11 or
 newer to read the optional configuration file) with no dependencies beyond
-Git. It checks the mechanical rules of the format and prints the candidate
-areas for a change.
+Git (2.38 or newer to check a merge). It checks the mechanical rules of the
+format and prints the candidate areas for a change.
 
 Install into a repository that is adopting the format. If `.git/hooks/commit-msg`
 already exists, or `core.hooksPath` is set, add a line to the existing hook that
