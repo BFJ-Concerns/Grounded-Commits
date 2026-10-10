@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.3 — 2026-10-10
+
+- `commit-msg --message-file <draft>` on its own checks the draft against
+  the staged change, as `git commit -F` would record it, giving the verdict
+  the recorded commit will get. During a merge, a linked worktree's
+  included, it keeps Git's merge subject and judges the merge's resolutions
+  against the staged tree, so a merge's message can be checked before the
+  merge commit exists. That form used to check against no paths, which
+  applied the `<area>: <outcome>` subject rule to a merge. Shape-only
+  checking is `--message-file <draft> --paths` with no paths.
+
 ## 0.3.2 — 2026-10-09
 
 - The hook judges what a merge resolved by comparing it with Git's own merge

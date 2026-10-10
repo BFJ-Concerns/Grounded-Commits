@@ -1,6 +1,6 @@
 # Grounded Commits: commit messages
 
-Format version 0.3.2. Copy this file, or the parts you need, into your repository's guidance for agents (`AGENTS.md`, `CLAUDE.md` or equivalent). It replaces the style of earlier commits and any instruction to imitate recent messages. A user's explicit instruction about a particular commit overrides it. It pairs with `pull-requests.md` and, optionally, `landing.md`; when you copy one file, keep or inline what it borrows from the others.
+Format version 0.3.3. Copy this file, or the parts you need, into your repository's guidance for agents (`AGENTS.md`, `CLAUDE.md` or equivalent). It replaces the style of earlier commits and any instruction to imitate recent messages. A user's explicit instruction about a particular commit overrides it. It pairs with `pull-requests.md` and, optionally, `landing.md`; when you copy one file, keep or inline what it borrows from the others.
 
 > Write only what you have: the request, what you observed, what you changed, what you ran. Say plainly what you lack.
 
