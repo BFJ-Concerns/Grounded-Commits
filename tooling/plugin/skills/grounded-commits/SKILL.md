@@ -250,6 +250,8 @@ skill as `scripts/commit-msg` in this skill's directory and run with
 python3 <skill-dir>/scripts/commit-msg --areas            # candidate areas for the staged change
 python3 <skill-dir>/scripts/commit-msg --rev HEAD         # check one commit
 python3 <skill-dir>/scripts/commit-msg --range main..HEAD # check a branch before landing
+python3 <skill-dir>/scripts/commit-msg --message-file <draft>
+                                                          # check a new message, a merge's included, before committing it
 python3 <skill-dir>/scripts/commit-msg --message-file <draft> --rev <commit>
                                                           # check a reworded message before recording it
 ```

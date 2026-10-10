@@ -27,15 +27,21 @@ Everyday use:
 python3 .git/hooks/commit-msg --areas               # areas the staged change could use
 python3 .git/hooks/commit-msg --rev HEAD            # check an existing commit
 python3 .git/hooks/commit-msg --range main..HEAD    # check a branch, for CI or before landing
+python3 .git/hooks/commit-msg --message-file draft.txt
+                                                    # check a draft against the staged change
 python3 .git/hooks/commit-msg --message-file draft.txt --rev HEAD
                                                     # check a draft against a commit's changes
 ```
 
-The last form checks a draft before it is committed: write the replacement
-message to a file and check it against the commit it is for, then amend or
-reword once it is clean. The draft is checked exactly as `--rev` checks the
-commit's own message, with the same paths and the same lookups of
-`Introduced-by:` hashes.
+The `--message-file` forms check a draft before it is recorded. Alone, it
+checks the draft against the staged change as `git commit -F draft.txt` would
+record it, comment lines included; during a merge that is the merge's
+resolutions and Git's merge rules, so a merge's message can be checked before
+the merge commit exists. With `--rev`, it checks a replacement message
+against the commit it is for, before an amend or a reword, exactly as `--rev`
+checks the commit's own message, with the same paths and the same lookups of
+`Introduced-by:` hashes. Either way the verdict is the one the recorded
+commit will get.
 
 A local hook sees only commits made where it is installed and is bypassed by
 `--no-verify`; the `--range` form is what a landing step or CI runs.

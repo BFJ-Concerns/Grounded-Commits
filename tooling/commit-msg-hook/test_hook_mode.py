@@ -262,6 +262,76 @@ def _(repo):
     return r.returncode == 1 and "body is missing" in r.stderr
 
 
+@case("--message-file checks a draft against the staged change, as the commit records it")
+def _(repo):
+    write(repo, "internal/scheduler/worker.go"); git(repo, "add", "-A")
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write("api: renew leases before they expire\n\nThe reproducer shows leases lapsing.\n")
+    wrong = hook(repo, "--message-file", draft)
+    with open(draft, "w") as handle:
+        handle.write(GOOD)
+    clean = hook(repo, "--message-file", draft)
+    return (wrong.returncode == 1 and "area `api`" in wrong.stderr and "no `Verified:`" in wrong.stderr
+            and "draft message" in wrong.stderr and clean.returncode == 0
+            and git(repo, "log", "--oneline").count("\n") == 1)
+
+
+@case("--message-file on a merge in progress gives the verdict --rev gives once it is recorded")
+def _(repo):
+    git(repo, "checkout", "-q", "-b", "side"); write(repo, "internal/api/handler.go", "s\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: side\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    git(repo, "checkout", "-q", "main"); write(repo, "internal/api/handler.go", "m\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: main\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    run(repo, "git", "merge", "--no-commit", "--no-ff", "side")
+    write(repo, "internal/api/handler.go", "r\n"); git(repo, "add", "-A")
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write("Merge branch 'side'\n")
+    bare = hook(repo, "--message-file", draft)
+    with open(draft, "w") as handle:
+        handle.write("Merge branch 'side'\n\nResolved the handler by keeping both lines.\n\n" + EVIDENCE)
+    drafted = hook(repo, "--message-file", draft)
+    assert run(repo, "git", "commit", "-q", "--no-verify", "-F", draft).returncode == 0
+    recorded = hook(repo, "--rev", "HEAD")
+    return (bare.returncode == 1 and "body is missing" in bare.stderr and "<area>: <outcome>" not in bare.stderr
+            and drafted.returncode == 0 and recorded.returncode == 0)
+
+
+@case("--message-file on a clean merge in progress passes with Git's subject alone")
+def _(repo):
+    git(repo, "checkout", "-q", "-b", "side"); write(repo, "internal/api/handler.go", "s\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: side\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    git(repo, "checkout", "-q", "main"); write(repo, "go.mod", "m\n"); git(repo, "add", "-A")
+    assert commit(repo, "all: main\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    assert run(repo, "git", "merge", "--no-commit", "--no-ff", "side").returncode == 0
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write("Merge branch 'side'\n")
+    return hook(repo, "--message-file", draft).returncode == 0
+
+
+@case("--message-file in a linked worktree sees that worktree's merge in progress")
+def _(repo):
+    git(repo, "branch", "side"); git(repo, "checkout", "-q", "side")
+    write(repo, "internal/api/handler.go", "s\n"); git(repo, "add", "-A")
+    assert commit(repo, "api: side\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    git(repo, "checkout", "-q", "main")
+    tree = repo + "-tree"
+    try:
+        git(repo, "worktree", "add", "-q", "-b", "page", tree)
+        write(tree, "internal/api/handler.go", "p\n"); git(tree, "add", "-A")
+        assert run(tree, "git", "commit", "-q", "-m", "api: page", "-m", "Body.", "-m", EVIDENCE).returncode == 0
+        run(tree, "git", "merge", "--no-commit", "--no-ff", "side")
+        write(tree, "internal/api/handler.go", "r\n"); git(tree, "add", "-A")
+        draft = os.path.join(repo, ".git", "gc-draft")
+        with open(draft, "w") as handle:
+            handle.write("Merge branch 'side' into page\n\nResolved the handler.\n\n" + EVIDENCE)
+        return hook(tree, "--message-file", draft).returncode == 0
+    finally:
+        shutil.rmtree(tree, ignore_errors=True)
+
+
 @case("--message-file --rev refuses --paths, exit 2")
 def _(repo):
     draft = os.path.join(repo, ".git", "gc-draft")
