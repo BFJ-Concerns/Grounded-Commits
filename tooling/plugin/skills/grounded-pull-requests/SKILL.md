@@ -1,6 +1,6 @@
 ---
 name: grounded-pull-requests
-description: Write and maintain a pull request's title and body as a review brief in the Grounded Commits convention, where the commits carry the record and the body holds only what no commit can. Use when opening, describing, retitling or updating a pull request, commenting on a push during review, or preparing an approved branch to land, in a repository that has adopted Grounded Commits — its agent guidance says so, or it has a .grounded-commits.toml or the Grounded Commits commit-msg hook; and when asked to write a grounded PR description. The commit messages themselves are grounded-commits.
+description: Write and maintain a pull request's title and body as a review brief in the Grounded Commits convention. Use when opening, describing, retitling or updating a pull request, commenting on a push during review, or preparing an approved branch to land, in a repository that has adopted Grounded Commits, and when asked to write a grounded PR description. The commit messages themselves are grounded-commits.
 ---
 
 # Grounded Pull Requests
@@ -50,10 +50,11 @@ collapsed block beneath the sentence that says what it shows.
    exists. This is the body's deliberate overlap with the commits; it carries
    the objective, not their reasoning, alternatives or evidence. One commit
    against an issue can be as short as `Delivers <issue URL> in one commit.`
-   With no issue, state the objective and where the request came from, as a
-   person or role or a document a reader of the repository can open, never
-   the tool or model that surfaced it, for example "requested by the
-   maintainer in the review of the export branch; no issue exists".
+   With no issue, state the objective; name a source only where it gives the
+   reviewer something the commits cannot, such as a document outside the
+   project's control, never the person you work for and never the tool or
+   model that surfaced the change. "No issue exists" is a disposition under
+   `Not in this PR`, not a refrain for the lead.
 2. **`### Read`** (several commits, a stacked pull request, or a diff whose
    shape is not obvious). Which commits prepare and which change behaviour;
    where to start; what invariant spans them. For a stacked member, its base
@@ -113,6 +114,9 @@ narration, repetition or assurance.
   `Considered and rejected:` before landing.
 - During a round, push fix-up commits rather than force-pushing, so the
   incremental diff and the inline threads keep working.
+- Where the branch must be brought current during review, merge the target
+  into it; a rebase replaces every commit the reviewers have read
+  (`references/landing.md`).
 - A body edit does not by itself re-run checks or request another review:
   GitHub's `pull_request` trigger omits `edited` unless a workflow opts in,
   and review bots mostly run on pushes. When an edit changes a premise a
@@ -120,148 +124,41 @@ narration, repetition or assurance.
 
 ## Before landing
 
-Once review is approved, record the reviewed head's hash. Then, whatever the
-method: where the branch's commits will land (fast-forward, rebase or a merge
-commit), reword any message the review changed and fold the fix-ups into the
-commits they correct, and for a rebase landing also fold the message of any
-commit that was empty to begin with into a neighbour (`references/landing.md`
-says why); under squash rewording and folding are optional, since the landed
-message is composed afresh from the commits; rebase onto the target, which
-drops any merge of the target into the branch and brings the branch up to date
-in its place (under `--rebase-merges`, only in the `rebase-cousins` mode
-below), and re-apply the conflict resolution and any manual amendment each
-merge carried, the dropped merge of the target included, since a dropped or
-flattened merge takes them with it and `--rebase-merges` recreates a kept
-merge without them; compare the cumulative patch with the reviewed head's;
-rebind the evidence of every commit the rewrite produced, not only the
-reworded ones, since folding and rebasing change trees (grounded-commits,
-*After a rewrite*), under squash in the composed message instead; sign the
-rewritten commits as you make them where they will land and the repository
-keeps author signatures (`commit.gpgsign`, or `-S` on the rebase), since a
-rewrite replaces the signed objects; and push once. A branch whose other merge
-commits are worth keeping keeps them with `--rebase-merges=rebase-cousins`
-under every method but a rebase landing, which lands only a linear branch and
-on GitHub rewrites every commit; there they are deliberately flattened. The
-`rebase-cousins` mode puts the branch's first commit on the target's tip and
-drops a merge of the target as redundant; the default mode leaves the commits
-beneath such a merge at their old base and recreates it against the new tip,
-so the branch is current only by a merge that ready to land forbids. Under
-squash or a merge commit the landed message is supplied explicitly: for a
-squash, one message composed in the commit format from the branch's commits,
-with evidence rebound to the landed tree; for a merge commit, the pull-request
-title alone. Never the forge's default, and never this body. A pull request
-from a fork lands by the route the repository's guidance records: rebased as
-written, squashed with a composed message, or reworded; whatever the route,
-the prepared branch must become the pull request's head, so push it to the
-contributor's branch where they allow edits from maintainers, or ask them to
-push it; with no route recorded, ask the user. Which method the repository
-uses, what each does to the commits and the forge settings for it are in
-`references/landing.md`, relative to this skill's directory: fast-forward is
-the default and rebase the fallback a repository chooses once where its
-landing identity may not push to the target, which on GitHub lands new commits
-without your signatures, as a squash does everywhere.
+The branch's commits land as the objects they were reviewed as, so the one
+rewrite the branch gets comes before its final approval, not after it. Once
+the reviewers' findings are settled, read `references/before-landing.md` for
+folding the fix-ups, rebinding their evidence, signing, and the push comment.
 
-Whatever the method, before landing, comment with one sentence: the reviewed
-head's hash, what happened since approval (folded, reworded, rebased, or
-nothing), and whether what lands is what was reviewed. The forge records that
-the head moved, not whether anything changed, and its compare view shows the
-diff, not what happened to the messages. Which comparison to make, and to
-attach, depends on the branch:
+Approval is then given, or given again, on the folded head, and from that
+point no commit on the branch is rewritten: a late finding is an ordinary
+commit with its own message and evidence, never an autosquash fix-up, and
+another approval, or the pull request waits.
 
-- **Flattened merge.** Where the branch contained a merge commit that
-  preparation flattened, at the reviewed head or earlier, `git range-diff`
-  skips the merge, pairs the commits around it with the flattened ones, and
-  reports the merge's own resolution and the target's drift as change,
-  whatever the tree test says. Compare the branch's patch and its messages
-  instead, with the two commands below; say what each shows and attach their
-  output.
-- **Tree identical.** Otherwise, `git rev-parse <reviewed-head>^{tree}
-  HEAD^{tree}` printing one hash twice means the code that lands is the code
-  that was approved. Say so, then name each commit whose message changed, by a
-  fragment of its subject in quotes, with what changed in it, or say no
-  message changed. Where any commit changed, by a fold, a reword or a reorder,
-  attach `git range-diff <target> <reviewed-head> HEAD`, which shows the
-  change commit by commit.
-- **Tree differs.** `git range-diff <target> <reviewed-head> HEAD` shows the
-  change commit by commit, messages included. Say what it shows, by commit:
-  the target's drift in context lines and nothing else, a fix-up folded in, a
-  hunk dropped, a commit dropped as already on the target, a message reworded;
-  attach it.
+Where the repository follows the landing guidance, landing never rebases the
+branch onto the target: a branch that is behind is integrated by a merge
+commit whose first parent is the target's tip and whose second is the
+approved head, built and checked before it lands, and the target advances to
+exactly that commit; `references/landing.md`, relative to this skill's
+directory, gives the steps on each forge, what each method does to the
+commits, and the settings. A repository with its own landing policy keeps
+it, and still never rewrites an approved head. Under squash the landing message is
+composed from the branch's commits in the commit format, with the evidence
+rebound to the landed tree, and supplied explicitly; never the forge's
+default, and never this body. A pull request from a fork lands by the route
+the repository's guidance records; with none recorded, ask the user.
 
-For a flattened merge, the two comparisons:
-
-```
-diff <(git diff $(git merge-base <target> <reviewed-head>) <reviewed-head>) <(git diff <target> HEAD)
-diff <(git log --format=%B <target>..<reviewed-head>) <(git log --format=%B <target>..HEAD)
-```
-
-A branch that keeps its merge commits (`--rebase-merges`) passes
-`--remerge-diff` to every `git range-diff` above, or changes to the merge
-commits' messages go unreported. Under squash or a merge commit, the same
-comparisons cover the branch tip that will be squashed or merged, which sits
-on the target's current tip like any other, and the composed or generated
-landing message is read back after landing as `landing.md` describes. An
-attachment sits inside a collapsed block, a `<details>` element whose
-`<summary>` names the command, with a blank line after the summary so the
-fenced block inside renders, which GitHub and Forgejo both need. Never paste
-`git diff <reviewed-head> HEAD`: after a rebase it mixes the target's drift
-with any change to the branch and cannot tell them apart. For example:
-
-```
-Reviewed head 3e7a1c5: folded the two fix-ups into their commits, main had not moved, tree identical; "stream CSV exports" reworded with the Verified line for the re-run, no other message changed (range-diff attached).
-```
-
-Re-run the checks on the new tip or record the gap with `Not-verified:`. Ready
-to land means: no open question in the body, `Not in this PR` current, every
-commit message that will land true of its folded contents, under squash the
-composed message, the forge not showing draft state, the branch still on the
-target's current tip, put there by rebase and not by merging the target in,
-for a rebase landing no commit that was empty to begin with, the required
-approvals present, and the required checks passing on the exact head that will
-land. Where the landing method rewrote the commits, read the landed messages
-back (`git log --format=%B <range>`) and compare them with what was pushed.
-After landing, close each fully delivered issue by hand, in a comment naming
-the landed commit.
+Ready to land means: no open question in the body, `Not in this PR` current,
+every commit message true of its contents, the forge not showing draft state,
+the required approvals present on the head that will be merged, and the
+required checks passing on the tree that will land, which is the integration
+candidate's, not the head's alone, unless the head already contains the
+target. After landing, read back that the approved head is an ancestor of
+the target's tip, its second parent under a merge or the tip itself after a
+fast-forward, or under squash that the landed tree is the checked tree; then
+close each fully delivered issue by hand, in a comment naming the landed
+commit.
 
 ## Examples
 
-One commit, no issue:
-
-```
-Title: export: close the query cursor when the client disconnects
-
-Closes the cursor leak the on-call rotation reported in last week's incident review; no issue exists.
-
-### Check
-The cursor is closed from the response's context-done hook; check that nothing else in handler.go relies on that hook running exactly once.
-Reproduction against staging not run; the "close the query cursor" commit's trailer says why.
-```
-
-Four commits, one outcome:
-
-```
-export: extract row serialisation from the buffered writer
-export: add a streaming writer behind the existing interface
-export: stream CSV exports instead of buffering them in memory
-docs: describe the X-Row-Count trailer for export clients
-```
-
-```
-Title: export: stream CSV exports instead of buffering them in memory
-
-Exports of over a million rows kill the worker at 2 GB (https://github.com/example/reports/issues/318). This branch streams rows as the cursor advances and moves the row count to a trailer.
-
-### Read
-The first two commits are mechanical and keep the buffered path; the third, "stream CSV exports", is the behaviour change. Start with export/stream.go.
-
-### Check
-Content-Length disappears from export responses; the "stream CSV exports" commit records the break. Do we know of any client that reads it?
-Production-volume replay not run; the "stream CSV exports" commit's trailer says why.
-
-### Try
-Against staging, request /exports/1.4m.csv with curl -N; worker RSS should stay flat where it used to climb to 2 GB.
-
-### Not in this PR
-A progress signal for clients that used Content-Length to show one; no issue exists.
-```
-
+Read `references/examples.md` for a one-commit body with no issue and a
+four-commit series with one outcome.

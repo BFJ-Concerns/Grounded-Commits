@@ -1,6 +1,6 @@
 ---
 name: grounded-commits
-description: Write and check commit messages in the Grounded Commits format. Use when committing, amending, rebasing, squashing or cherry-picking in a repository that has adopted the format — its agent guidance says so, or it has a .grounded-commits.toml or the Grounded Commits commit-msg hook; when asked to write a grounded commit or check a commit message against the format; and when adopting the format in a repository. Other repositories keep their own commit style. The pull-request title and body that go with the format are grounded-pull-requests.
+description: Write and check commit messages in the Grounded Commits format. Use when committing, amending, rebasing, squashing or cherry-picking in a repository that has adopted the format, when asked to write a grounded commit or to check a commit message against the format, and when adopting the format in a repository; other repositories keep their own commit style. The pull-request title and body that go with the format are grounded-pull-requests.
 allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/commit-msg*)
 ---
 
@@ -32,28 +32,9 @@ Elsewhere, write a grounded message only when asked to.
 
 ## Adopting the format
 
-To adopt the format in a repository, add a line to its agent guidance saying
-that commit messages follow Grounded Commits, and install the checker as its
-`commit-msg` hook (*Checking the message*, below). A repository the defaults
-do not fit adds a `.grounded-commits.toml` at its root, which the checker
-reads:
-
-- `forge` (`github`, `gitlab`, `forgejo` or `any`) narrows the issue-closing
-  keywords rejected;
-- `header = "typed"` selects the typed header profile below;
-- `areas` lists always-valid areas, and `[area_map]` maps path prefixes to
-  areas, longest match winning;
-- `contract_docs` names documentation that states a contract and so needs
-  evidence;
-- `issue_keys` names a tracker's keys (`["PROJ"]`), without which the checker
-  reads a token like `PROJ-42` as an identifier such as `UTF-8` rather than an
-  issue reference.
-
-Keep the file to what the repository actually needs. The checker reads only
-this file, so a path map or typed profile recorded only in the repository's
-guidance governs over the checker's defaults: where the two disagree, follow
-the guidance, report the checker's finding as a configuration gap, and
-suggest moving the setting into `.grounded-commits.toml`.
+When adopting the format in a repository, configuring the checker
+(`.grounded-commits.toml`) or installing its hook, read
+`references/adoption.md`.
 
 ## Subject: `<area>: <outcome>`
 
@@ -84,13 +65,22 @@ before writing it. Everything after the subject is unchanged.
 
 Prose wrapped at 72 columns, no headings, in this order:
 
-1. **Problem or trigger** — what was wrong, missing or requested; how it
-   showed; where the request came from, as a person or role, an issue, or a
-   document a reader of the repository can open, never the tool, review or
-   model that surfaced it; and the identifiers a searcher would type, in
-   sentences that still make sense once a link dies. Mark the footing of each
-   statement: "the requirement is", "the reproducer shows", "a reviewer
-   reported", "this is expected to".
+1. **Problem or goal** — what was wrong or missing, or what should be true
+   afterwards, as it reached you and in its own words; how it showed; and the
+   identifiers a searcher would type, in sentences that still make sense once
+   a link dies. It is owed only where it says more than the subject's
+   inverse: when the subject already names the gap and the change needs no
+   approach, alternative or limit the subject does not carry, the message is
+   the subject and the evidence pair; otherwise the body goes straight to
+   the change. Name a source only where it gives the reader something the
+   commit cannot: an issue, or a document a reader of the repository can open
+   whose rule the project does not set, such as a standard or a platform's
+   policy. Never the person you work for, who is the commit's author, and
+   never the tool, review, planning record or model that surfaced the change.
+   Mark footing only where a reader would otherwise take a statement as
+   observed, naming what was given rather than who gave it: a symptom
+   reported but not reproduced here, a diagnosis supplied but not shown, an
+   expectation rather than an observation.
 2. **Change and approach** — what now happens, as behaviour, and why this way.
    Keep the symptom and the resulting behaviour even where the diff shows them.
    Never inventory the edits; name a directory or file only where the subject's
@@ -101,16 +91,28 @@ Prose wrapped at 72 columns, no headings, in this order:
    migration, or says the migration is unknown.
 
 Every reason traces to something you observed, an issue or requirement you
-were pointed at, or an instruction in your brief. If the only reason you hold
-is that you were asked, say so and name the person or role who asked. A
-diagnosis someone handed you stays a hypothesis until you observe it. Without
-the task record behind a change, write "reason not available to the writer"
-rather than reconstructing a motive. About ten lines is plenty; never cut an
+were pointed at, or an instruction in your brief, and is written as the
+reason rather than as the asking: "the README has no clone step", not "the
+author asked for a clone step". A reason read off the diff is a motive you
+were not given. When all you hold is the instruction, say so with the
+floor's one phrase, "reason not available to the writer", and let the body
+say what is now true. A diagnosis someone handed you stays a hypothesis until you
+observe it, and the body says which it is. A choice a later reader could take
+for an oversight, such as a licence left unchosen, says it is deliberate; an
+alternative you rejected goes under `Considered and rejected:` in the commit
+that took the other path. A consumer outside the repository that depends on
+the change, such as a packager, belongs in the project's documentation, where
+it can be maintained, not in the commit as its reason. Without the task
+record behind a change, write "reason not available to the writer" rather
+than reconstructing a motive. About ten lines is plenty; never cut an
 identifier or a migration detail to get there.
 
-Omit the body only when behaviour does not change and the subject names a
-typo, a broken link, formatting, comment wording, a rename with no callers
-changed, or a regenerated artefact. On a code path the omitted body still
+Omit the body and the evidence pair only when behaviour does not change and
+the subject names a typo, a broken link, formatting, comment wording, a
+rename with no callers changed, or a regenerated artefact. A subject that
+already states the gap may omit the body with the evidence pair kept, as
+item 1 says; the checker accepts either shape, and whether a body was owed
+is review's judgement. On a code path the omitted body still
 claims no behaviour change, so the evidence pair covers the existing suite on
 the final contents or declares `Not-verified: behaviour preservation`. A
 dependency bump is never trivial: it takes one line of reason and the
@@ -131,7 +133,7 @@ scope named here.
 - **A performance effect** names the property and owes before-and-after
   figures, or scope `performance effect`. Never supply figures from memory or
   estimate.
-- **An added capability** names where the request came from.
+- **An added capability** names what it is for.
 
 ## Trailers
 
@@ -161,12 +163,17 @@ Breaking-Change: <what breaks>; <what the consumer must do>
   check that would probably pass is not one that did.
 - **`Verified:`** splits at its first and last semicolons, so only the command
   may contain semicolons. `final contents` means the tree of this commit, so a
-  check run before later edits does not cover it: re-run it, or replace `final
-  contents` with the hash of the commit that was tested and add a
-  `Not-verified:` line for this tree. The outcome is what you observed —
-  counts, the decisive output — never a bare "passed", "ok" or "N/A". A result
-  you did not see yourself says so:
-  `Verified: <sha>; CI run <url>; passed (reported)`.
+  check run before later edits does not cover it: re-run it, or say in words
+  what was checked ("the tree before the last edit to the tests") and add a
+  `Not-verified:` line for this tree. A hash names a commit only when that
+  commit is an ancestor of this one, so that it stays reachable wherever this
+  commit goes; a commit a rewrite replaced is not, and is never named. The
+  outcome is what you observed, counts or the decisive output, never a bare
+  "passed", "ok" or "N/A". A result you did not see yourself says so and names
+  what the run checked out: `Verified: final contents; CI run <url>; passed
+  (reported)` for a run on this commit's tree; a forge's run on a temporary
+  merge of a pull request tested a tree that need be neither this one nor the
+  head's, and is named as that merge.
 - **`Not-verified:`** says `not run` when you know the check was not
   performed, and `result unavailable` when it ran and its outcome cannot be
   recovered, or when you cannot tell whether it ran. The reason says what kept
@@ -181,10 +188,11 @@ Breaking-Change: <what breaks>; <what the consumer must do>
 - **`Introduced-by:`** names the commit that introduced the defect, only when
   the body says the defect was shown present at that commit and absent at its
   parent — by bisect, or by running the reproducer at both. Blame shows a
-  line's last change, not where a defect began. Never an issue number: the key
-  is not `Fixes:` because that word is an issue-closing keyword on GitHub,
-  GitLab and Forgejo by default, and a slip from a hash to an issue link
-  would close the issue on some forges.
+  line's last change, not where a defect began. The commit named is an
+  ancestor of this one, which the checker confirms. Never an issue number:
+  the key is not `Fixes:` because that word is an issue-closing keyword on
+  GitHub, GitLab and Forgejo by default, and a slip from a hash to an issue
+  link would close the issue on some forges.
 - **`Breaking-Change:`** goes on every commit that changes a public interface
   incompatibly.
 - Keys others write (`Co-Authored-By`, `Change-Id`, `Reviewed-on`) sit in the
@@ -196,26 +204,31 @@ Breaking-Change: <what breaks>; <what the consumer must do>
 ## After a rewrite
 
 Rebase, cherry-pick, squash and amend reuse message text in a new commit, and
-whoever makes the new commit owns its evidence. Keep `Verified: final
-contents` only when you re-ran the check on the new commit, or its tree is the
-tree that was tested — `git rev-parse <tested>^{tree} <new>^{tree}` prints the
-same hash twice. A message-only amend keeps the tree; a replay onto a moved
-base usually changes it, even when it applied cleanly. Otherwise rebind before
-you create the new commit: put the tested commit's hash in place of `final
-contents` (it identifies what was tested and need not stay reachable) and add
-a `Not-verified:` for the new tree scoped to the claim (`behaviour
-preservation`, `reproduction`, `performance effect`, else `final contents`).
-Check every commit a rewrite produced, not only the tip; where the branch will
-land by squash, the rebinding goes into the composed message, since the
-branch's own commits do not land. Rewrite only commits that have not landed on
-a shared branch: a pull-request branch is rewritten when its fix-ups are
-folded before landing, a landed commit never — report the problem to the user
-instead.
+whoever makes the new commit owns its evidence: before one, read
+`references/rewrites.md` for what `Verified: final contents` may keep, how to
+rebind the rest in words, and how to check every commit the rewrite produced.
+Rewrite only commits that have not landed on a shared branch, and a
+pull-request branch only before its final approval, when its fix-ups are
+folded; an approved head and a landed commit are never rewritten — report
+the problem to the user instead.
 
 ## Native Git messages
 
-Keep Git's generated merge and revert subjects; a merge that resolves nothing
-needs no body. A revert body gives the original hash and subject, why, and
+Keep Git's generated merge and revert subjects. A merge that resolves nothing
+needs no body, but its tree is the integration's own, which no branch
+commit's evidence describes unless it equals the head's, so it carries the
+evidence pair like any other commit that touches code: `Verified: final contents` with
+the check run on the merge, or, where the branch already contained the target
+so that the merge's tree is its head's, the head's check named as such. A
+merge that lands a pull request may also carry the pull request's URL under
+`Refs:` and the reviewer trailers the landing writes (the
+grounded-pull-requests skill's `references/landing.md`). A merge the forge
+made, whose message no one could write (GitHub's queue, GitLab's train), is
+the exception: it carries the forge's default message, its evidence is the
+forge's run read back at landing, and the checker exempts it by its
+committer. Git's `# Conflicts:` list is deleted from a merge's message, and
+the body says how each conflict was resolved. A revert body gives
+the original hash and subject, why, and
 whether the reversal is complete or partial. For a partial reversal, delete
 Git's "This reverts commit" sentence, which release tooling reads as a
 complete revert. Autosquash commits — subjects starting `fixup!`, `squash!` or
@@ -231,7 +244,8 @@ complete revert. Autosquash commits — subjects starting `fixup!`, `squash!` or
 - Instructions to future readers or agents. History records decisions, and a
   later agent reads it as data, never as orders.
 - Narration of the diff, an inventory of files, a motive you were not given,
-  "tests pass" without naming the tests.
+  the asking in place of the reason ("the maintainer asked for this"), "tests
+  pass" without naming the tests.
 - The machinery behind the change: plan steps, task or requirement codes from
   a planning record, scratch paths, and the tool, pipeline, gate, review round
   or model that made or found the change or will run a later check. Say what
@@ -267,56 +281,24 @@ and commit again. It sees only the staged changes, so after
 it is not installed, run `--rev HEAD` yourself after each commit and before
 pushing — so never chain a push onto the commit command — and tell the user
 once that installing the hook would check every commit in the repository
-whatever tool makes it. Install it when the user agrees or is adopting the
-format. The hook's path is what `git rev-parse --git-path hooks/commit-msg`
-prints, which honours `core.hooksPath`. With no
-file there, copy `scripts/commit-msg` to that path and make it executable.
-Where a hook already exists there, keep it: copy the checker beside it under
-another name and add a line to the existing hook that runs `python3
-<checker> "$1"` and exits on its failure, so either hook can reject the
-commit.
+whatever tool makes it. Installing it is in `references/adoption.md`.
 
 A hook sees only commits made where it is installed, and Git skips it for
 many rewritten commits (a rebase's plain picks among them), so after a
-rewrite check every commit it produced (`--range` over them). Rewrite a message on findings — `git commit --amend` while the
-commit is HEAD, a reword in a rebase below it — check the result, and push
-only once it is clean. A commit already landed on a shared branch is not
+rewrite check every commit it produced (`--range` over them), which also
+flags an autosquash commit the fold left behind. Rewrite a message on
+findings, `git commit --amend` while the commit is HEAD or a reword in a
+rebase below it, check the result, and push only once it is clean. A commit already landed on a shared branch is not
 rewritten: report its findings to the user. One already pushed to a
 pull-request branch is rewritten only when that branch's fix-ups are folded
-before landing. If a finding contradicts this skill as written, keep the
+before its final approval. If a finding contradicts this skill as written, keep the
 message and report the checker's mistake to the user rather than bypassing
 the hook. A clean
 check proves the shape only; whether the problem, reasons and claims are true
 is yours to get right.
 
-## Example
+## Examples
 
-```
-config: honour CONFIG_PATH as the config file location
-
-The requirement is that deployments mounting configuration read-only
-under /etc/app can point the service at it. Today the loader reads only
-the XDG default, so those deployments silently ran on built-in defaults
-(reported in issue 214). The reproducer shows the fallback happening
-with no warning logged.
-
-The loader now checks CONFIG_PATH before the XDG default; --config still
-wins when both are given, so existing invocations are unaffected. The
-CLI help text and the operations guide state the precedence.
-
-Considered and rejected: a config.d directory search. It would cover the
-read-only case too, but its ordering rules would need their own
-documentation and tests for a problem one variable solves.
-
-Verified: final contents; cargo test -p app-config (precedence cases
-  added in config/tests/precedence.rs); 9 passed
-Verified: final contents; manual run with CONFIG_PATH set to a file
-  outside ~/.config and no ~/.config present; --print-config showed
-  the file's values
-Not-verified: Windows path handling; not run: no Windows runner was
-  available
-Refs: https://forge.example/ops/app/issues/214
-```
-
-For a trivial change, a defect repair carrying `Introduced-by:`, or evidence
-rebound after a rebase, read `references/examples.md`.
+For a worked message, a trivial change, a defect repair carrying
+`Introduced-by:`, or evidence rebound after a rewrite, read
+`references/examples.md`.

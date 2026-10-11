@@ -59,8 +59,27 @@ def case_marketplaces_point_at_plugin():
             and [(p["name"], os.path.normpath(p["source"]["path"])) for p in codex] == [("grounded-commits", expected)])
 
 
+AUTHORING_COPIES = [os.path.join(ROOT, ".claude", "skills", "skill-and-plugin-authoring"),
+                    os.path.join(ROOT, ".agents", "skills", "skill-and-plugin-authoring")]
+
+
+def case_authoring_skill_copies_match():
+    """The Claude Code and Codex copies carry the same files, byte for byte,
+    apart from the Codex interface file only Codex reads."""
+    def files(root):
+        out = {}
+        for base, _, names in os.walk(root):
+            for name in names:
+                rel = os.path.relpath(os.path.join(base, name), root)
+                if rel != os.path.join("agents", "openai.yaml"):
+                    out[rel] = read_bytes(os.path.join(base, name))
+        return out
+    return files(AUTHORING_COPIES[0]) == files(AUTHORING_COPIES[1])
+
+
 CASES = [
     ("bundled checker is the reference hook, executable", case_bundled_hook_matches_reference),
+    ("the authoring skill's two copies match", case_authoring_skill_copies_match),
     ("bundled landing reference is the landing guidance", case_landing_reference_matches_guidance),
     ("plugin manifests carry the VERSION release", case_manifests_carry_release_version),
     ("plugin manifests share one name", case_manifests_share_name),

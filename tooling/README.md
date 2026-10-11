@@ -10,15 +10,28 @@ newer to read the optional configuration file) with no dependencies beyond
 Git (2.38 or newer to check a merge). It checks the mechanical rules of the
 format and prints the candidate areas for a change.
 
-Install into a repository that is adopting the format. If `.git/hooks/commit-msg`
-already exists, or `core.hooksPath` is set, add a line to the existing hook that
-runs this one instead of replacing it:
+Install into a repository that is adopting the format. The hook's path is what
+`git rev-parse --git-path hooks/commit-msg` prints, which honours
+`core.hooksPath` and a linked worktree. If a hook already exists there, keep
+it: save the checker beside it under another name and add a line to the
+existing hook that runs it and exits on its failure, so either can reject
+the commit:
 
 ```sh
-curl -fsSL -o .git/hooks/commit-msg \
+hook=$(git rev-parse --git-path hooks/commit-msg)
+curl -fsSL -o "$(dirname "$hook")/grounded-commits" \
   https://raw.githubusercontent.com/BFJ-Concerns/Grounded-Commits/main/tooling/commit-msg-hook/commit-msg
-chmod +x .git/hooks/commit-msg
-python3 .git/hooks/commit-msg --rev HEAD     # smoke check: exit 0 or a list of findings
+printf '%s\n' "python3 \"$(dirname "$hook")/grounded-commits\" \"\$1\" || exit 1" >> "$hook"
+```
+
+With no hook there:
+
+```sh
+hook=$(git rev-parse --git-path hooks/commit-msg)
+curl -fsSL -o "$hook" \
+  https://raw.githubusercontent.com/BFJ-Concerns/Grounded-Commits/main/tooling/commit-msg-hook/commit-msg
+chmod +x "$hook"
+python3 "$hook" --rev HEAD     # smoke check: exit 0 or a list of findings
 ```
 
 Everyday use:
@@ -56,13 +69,18 @@ breaking_marker = "trailer"  # typed profile: "paragraph" where the release pars
 areas = ["cli", "config"] # areas that are always valid
 contract_docs = ["docs/api/"]  # documentation that states a contract and needs evidence
 issue_keys = ["PROJ"]     # tracker keys: PROJ-42 is then an issue reference, UTF-8 stays an identifier
+forge_merge_committers = ["noreply@github.com"]  # a merge with this committer was made by the forge and carries no trailers
 
 [area_map]                # path prefix -> area, longest match wins, checked before derivation
 ".github/" = "ci"
 "myproject/billing/" = "billing"
 ```
 
-Run the fixtures with `python3 tooling/commit-msg-hook/test_fixtures.py`. A
+Three suites cover the tooling: `python3 tooling/commit-msg-hook/test_fixtures.py`
+(message shapes, no repository needed), `python3
+tooling/commit-msg-hook/test_hook_mode.py` (the hook in a throwaway
+repository; needs Git 2.38 or newer) and `python3 tooling/plugin/test_plugin.py`
+(the plugin's consistency with the hook, the guidance and the release). A
 clean check proves the shape only; whether the problem, the reasons and the
 claims in a message are true is for review.
 
@@ -79,7 +97,10 @@ tools:
 - `skills/grounded-pull-requests/` writes and maintains a pull request's
   title and body.
 
-The skills are derived from `guidance/` and change with it. The bundled
+The repository also carries the skill-and-plugin-authoring skill under
+`.claude/skills/` and `.agents/skills/`, one copy per tool, which the two
+bundled skills are written and revised against; the plugin test keeps the
+copies identical. The skills are derived from `guidance/` and change with it. The bundled
 `scripts/commit-msg` is a copy of `commit-msg-hook/commit-msg`, and both
 plugin manifests carry the release in `VERSION`; `python3
 tooling/plugin/test_plugin.py` fails when either drifts, so a hook change or

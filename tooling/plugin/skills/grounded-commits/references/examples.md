@@ -1,4 +1,35 @@
-# Grounded Commits: further examples
+# Grounded Commits: examples
+
+## A full message
+
+A request backed by an issue, the reproducer's observation, the behaviour
+that changed, a rejected alternative, and an evidence pair naming a gap.
+
+```
+config: honour CONFIG_PATH as the config file location
+
+Deployments mounting configuration read-only under /etc/app need to
+point the service at it (issue 214). The loader reads only the XDG
+default, so those deployments silently ran on built-in defaults; the
+reproducer shows the fallback happening with no warning logged.
+
+The loader now checks CONFIG_PATH before the XDG default; --config still
+wins when both are given, so existing invocations are unaffected. The
+CLI help text and the operations guide state the precedence.
+
+Considered and rejected: a config.d directory search. It would cover the
+read-only case too, but its ordering rules would need their own
+documentation and tests for a problem one variable solves.
+
+Verified: final contents; cargo test -p app-config (precedence cases
+  added in config/tests/precedence.rs); 9 passed
+Verified: final contents; manual run with CONFIG_PATH set to a file
+  outside ~/.config and no ~/.config present; --print-config showed
+  the file's values
+Not-verified: Windows path handling; not run: no Windows runner was
+  available
+Refs: https://forge.example/ops/app/issues/214
+```
 
 ## A trivial change on a documentation path
 
@@ -23,9 +54,8 @@ Verified: final contents; cargo fmt --check and cargo test -p scheduler;
 
 ## A defect repair carrying `Introduced-by:`
 
-The body names the symptom and how it showed, and states the
-present-at-commit, absent-at-parent result that substantiates
-`Introduced-by:`.
+The body states the symptom and how it showed, with the present-at-commit,
+absent-at-parent result that substantiates `Introduced-by:`.
 
 ```
 scheduler: stop running a job twice when a worker shuts down
@@ -45,7 +75,7 @@ origin.
 Verified: 9f3c1a2b7d4e^, 9f3c1a2b7d4e and final contents;
   go test ./scheduler/... -run TestShutdownOrdering -count=50;
   0 of 50, 7 of 50 and 0 of 50 runs failed respectively
-Verified: final contents; go test ./...; all packages passed
+Verified: final contents; go test ./...; ok, 14 packages
 Not-verified: replay against the production incident data; not run:
   the data is not retained outside the billing environment
 Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
@@ -53,22 +83,23 @@ Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
 Refs: https://forge.example/ops/billing/issues/301
 ```
 
-## Evidence rebound after a rebase
+## Evidence rebound after a rewrite
 
-The branch was rebased onto main after the check and the suite was not run
-again, so `Verified:` names the commit that was tested and the new tree is
-declared unverified.
+The branch's fix-ups were folded before its final approval and the suite was
+not run again. The `Verified:` line keeps the check and names the tree it
+ran on in words, and the gap for the new tree says what the fold did to this
+commit's files. Naming the replaced commit by hash would point at an object
+nothing keeps reachable.
 
 ```
 cli: print the resolved config path with --print-config
 
-Operators asked (issue 227) which file the service actually loaded
-when several candidates exist. --print-config now prints the resolved
-path on its first line, before the values.
+Which file the service loads when several candidates exist is shown
+nowhere (issue 227). --print-config now prints the resolved path on
+its first line, before the values.
 
-Verified: 7c0d2e5a91b4 (the tested commit before rebase onto main);
-  cargo test -p app-cli; 12 passed
-Not-verified: final contents; not run: the branch was rebased onto
-  main after the check and the suite was not re-run
+Verified: the tree before the fold; cargo test -p app-cli; 12 passed
+Not-verified: final contents; not run: the fold changed no file this
+  commit touches and the suite was not re-run
 Refs: https://forge.example/ops/app/issues/227
 ```

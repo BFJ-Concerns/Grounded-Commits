@@ -1,6 +1,6 @@
 # Grounded Commits
 
-**Version 0.3.3** · [Changelog](CHANGELOG.md) · MIT licence
+**Version 0.4.0** · [Changelog](CHANGELOG.md) · MIT licence
 
 A commit-message format, and a pull-request convention to go with it, for
 repositories where coding agents write most of the commits, open most of the
@@ -27,25 +27,32 @@ how branches land.
    codex plugin marketplace add BFJ-Concerns/Grounded-Commits
    codex plugin add grounded-commits@grounded-commits
    ```
-   Then add a line to the repository's guidance for agents saying that its
-   commits and pull requests follow Grounded Commits. The skills also treat a
+   Then start a fresh session, in which the tool lists the two skills, and add
+   a line to the repository's guidance for agents saying that its commits and
+   pull requests follow Grounded Commits. The skills also treat a
    repository with a `.grounded-commits.toml` or the hook as adopting the
    format, and elsewhere apply only when asked.
 2. **Install the hook**, which checks the mechanical rules and tells the agent
    which areas a change could use. In the repository that is adopting the
-   format, with Python 3.8 or newer and Git 2.38 or newer available:
+   format, with Python 3.8 or newer (3.11 or newer to read the optional
+   configuration file) and Git 2.38 or newer available. The hook's path is
+   what `git rev-parse --git-path hooks/commit-msg` prints, which honours
+   `core.hooksPath` and a linked worktree, where `.git` is a file; if a hook
+   already exists there, keep it, save the checker beside it under another
+   name and call it from the existing hook, as
+   [`tooling/README.md`](tooling/README.md) shows. With no hook there:
    ```sh
-   curl -fsSL -o .git/hooks/commit-msg \
+   hook=$(git rev-parse --git-path hooks/commit-msg)
+   curl -fsSL -o "$hook" \
      https://raw.githubusercontent.com/BFJ-Concerns/Grounded-Commits/main/tooling/commit-msg-hook/commit-msg
-   chmod +x .git/hooks/commit-msg
-   python3 .git/hooks/commit-msg --areas
+   chmod +x "$hook"
+   python3 "$hook" --areas
    ```
-   If a `commit-msg` hook already exists, or `core.hooksPath` is set, call this
-   one from it. [`tooling/README.md`](tooling/README.md) covers that, the
-   optional configuration and the `--range` check for CI and landing.
+   [`tooling/README.md`](tooling/README.md) also covers the optional
+   configuration and the `--range` check for CI and landing.
 3. **Optionally, decide how branches land** with
-   [`guidance/landing.md`](guidance/landing.md). Fast-forward is the default,
-   rebase the fallback; every merge method is covered.
+   [`guidance/landing.md`](guidance/landing.md). A checked integration
+   candidate is the default; every merge method is covered.
 
 Here is what a commit looks like:
 
@@ -131,12 +138,11 @@ work on a branch → commits carry the record → the PR body guides review
   learn what changed, why, and what was checked, without the forge.
 - **The pull request is for review.** Its body helps whoever is reviewing now,
   and is written so that it can be thrown away.
-- **Landing is your choice.** Fast-forward lands the prepared tip unchanged and
-  is the default; rebase keeps the messages, on GitHub at the cost of the
-  hashes and your signatures, and is the fallback a repository chooses once
-  where its forge cannot fast-forward; merge commits and squashes work with a
-  little configuration. [`guidance/landing.md`](guidance/landing.md) has the
-  table.
+- **Landing is your choice.** The default builds the merge commit before it
+  lands, checks it as the object that will land and advances the target to
+  it, so no reviewed commit is rewritten; squash works with a composed
+  message; rebasing before a fast-forward replays every commit and is not
+  used. [`guidance/landing.md`](guidance/landing.md) has the table.
 
 ## Commit messages
 
@@ -189,10 +195,12 @@ information. A typed header is still available where a tool needs it; see
 
 Wrapped at 72 columns, no headings, in this order:
 
-1. **The problem or request:** what was wrong or asked for, how it showed, where
-   the request came from (a person or role, an issue, or a document a reader
-   can open, never the tool or model that surfaced it), and the names a
-   searcher would type.
+1. **The problem or goal:** what was wrong or missing, or what should be true
+   afterwards, as it reached the writer; how it showed; and the names a
+   searcher would type. A source only where it gives the reader something the
+   commit cannot (an issue, or a document outside the project's control that a
+   reader can open), never the person the writer works for, who is the commit's
+   author, and never the tool or model that surfaced it.
 2. **The change, and why this way,** described as behaviour, never as a list of
    edits.
 3. Optionally, **`Considered and rejected:`** alternatives that were actually
@@ -201,8 +209,10 @@ Wrapped at 72 columns, no headings, in this order:
    migrate, or says the migration is unknown.
 
 Every reason must trace to something the writer actually has: an observation, a
-reference, or its instructions. When the writer does not know why, it writes
-"reason not available to the writer" rather than inventing a reason.
+reference, or its instructions, and is written as the reason, not as the
+asking: "the README has no clone step", not "the author asked for one". When
+the writer does not know why, it writes "reason not available to the writer"
+rather than inventing a reason.
 
 Claims carry obligations. "No behaviour change intended" means the test suite
 ran on the final contents, or a `Not-verified:` line says it did not. A
@@ -243,10 +253,12 @@ Breaking-Change: <what breaks>; <what the consumer must do>
 - `Verified:` is a claim, not proof. A hook can check its shape; only review and
   sampling can check that it is true. Its value splits at the first and last
   semicolons, so only the command in the middle may contain one.
-- "What was tested" names the code that was tested. After a rebase, a
+- "What was tested" names the code that was tested. After a rewrite, a
   `Verified: final contents` line stays only if the code is identical to what was
-  tested, or the check was run again. Otherwise the line names the commit that was
-  tested, and a `Not-verified:` line covers the rebased result.
+  tested, or the check was run again. Otherwise the line says in words what was
+  tested, and a `Not-verified:` line covers the new tree where the rewrite
+  touched the commit's files. A hash in a message names an ancestor of the
+  commit, so it stays reachable; a commit a rewrite replaced is never named.
 - `Refs:` is a full URL, never a closing keyword such as "Fixes #12".
 - `Introduced-by:` names the commit that introduced a bug, and only when the body
   says the bug was shown present at that commit and absent at its parent.
@@ -262,7 +274,8 @@ evidence out of prose.
 ### Never in a commit message
 
 A narration of the diff or a list of files; a motive the writer was not given;
-"tests pass" without naming the tests; CI control tokens such as `[skip ci]`,
+the asking in place of the reason; "tests pass" without naming the tests; CI
+control tokens such as `[skip ci]`,
 even quoted; issue-closing keywords; instructions to future readers or agents
 (history is read as input, so it must not give orders); and the machinery
 behind the change: plan steps, planning-record codes, scratch paths, and the
@@ -372,34 +385,36 @@ Nothing in it repeats a commit's reasoning, lists files or claims a result.
 ## Landing
 
 The landing guide is optional, but knowing what your merge method does to the
-commit messages is not, because they are the record. The default is
-**fast-forward**: the branch is folded, reworded where review changed it,
-rebased onto the target, pushed once with a one-sentence comment saying whether
-the tip's tree and messages still match the reviewed head, and the target moves
-to its tip, so the prepared tip lands unchanged, hashes and signatures included.
-GitLab, Forgejo, Gitea and plain Git offer it as a setting; on GitHub it is a
-direct push of the approved tip. **Rebase** is the fallback a repository chooses
-once where its landing identity may not push: on GitHub the forge replays the
-commits as new objects, keeping their messages, once an originally empty
-commit's has been folded into a neighbour, but not their hashes or your
-signatures; Forgejo and Gitea rewrite only a branch that is behind or one a
-merge template amends. Squash creates new commits everywhere, so a repository
-that signs its commits lands by fast-forward or merge commit. Merge commits work
-when the merge message is set to the pull-request title only. Squashes work when
-the landing agent composes the squash message in the commit format from the
-branch's commits and supplies it explicitly, so the pull-request body never
-becomes a commit message.
+commits is not, because they are the record. The default lands a **checked
+integration candidate**: a merge commit whose first parent is the target's tip
+and whose second is the approved head, built before landing, checked as the
+object that will land, signed by whoever made it, carrying the pull request's
+URL and a `Verified:` line for its own tree; then the target advances to
+exactly that commit. No reviewed commit is rewritten, so every hash, tree,
+message and signature the reviewers saw is what lands, and the one new tree is
+the one that was checked. On GitHub a merge queue builds and lands the
+candidate; on Forgejo the agent stages it on the pull-request branch and lands it
+with the fast-forward-only style; on GitLab the same staging
+under the fast-forward method, or merge trains.
 
-Whatever the method, four things hold: under fast-forward and merge commits
-every message lands as written or as deliberately reworded, under rebase the
-same, an originally empty commit's message having been folded into a neighbour
-first, and under squash the one landed message is composed from them, never
-taken from the forge's default; nothing from the pull-request body enters
-history; the landing comment says whether the landed tip still matches the
-reviewed head; and issues are closed by hand after landing. The methods, their
-costs and the settings for each forge are in
-[`guidance/landing.md`](guidance/landing.md), including the one way to
-fast-forward on GitHub and what to do with pull requests from forks.
+Rebasing before a fast-forward, whether the forge does it or you do, replays
+every commit as a new object: trees the checks may never have run on,
+signatures gone, every evidence line to rebind. Squash does the same in one commit, and is
+supported where a repository wants one commit per pull request, with the
+landing agent composing its message in the commit format from the branch's
+commits. A forge's merge of a branch that fell behind lands a tree nobody
+checked, because on GitHub the checks ran on a temporary merge and recorded
+the result against the head's hash, and on Forgejo on the head alone; the
+up-to-date rule and the merge queue exist to close that gap.
+
+Whatever the method, four things hold: the reviewed commits land unchanged, or
+under squash the one landed message is composed from them, never taken from
+the forge's default; the landed tree was checked before it landed, by the
+landing agent or by the forge's own run read back;
+nothing from the pull-request body enters history; and issues are closed by
+hand after landing. The methods, their costs and the settings for each forge
+are in [`guidance/landing.md`](guidance/landing.md), including pull requests
+from forks.
 
 ## Hurdles and trade-offs
 
@@ -407,19 +422,20 @@ fast-forward on GitHub and what to do with pull requests from forks.
   overrides both, but only the `commit-msg` hook makes it stick, and a local
   hook sees only the commits made where it is installed. Run the hook's
   `--range` check over a branch before it lands, or in CI.
-- **Rebasing changes what was tested.** If the target branch moved, the rebased
-  code is not the code the checks ran on. Run them again, or record the gap with
-  `Not-verified:`.
+- **Integration changes what was tested.** If the target moved, the merged tree
+  is one no branch commit's checks ran on. The candidate is checked before it
+  lands and carries its own `Verified:` line; rewriting the branch instead would
+  owe that per commit.
 - **`Verified:` is self-reported.** The hook checks its shape, not its truth.
   Review and sampling do the rest, until tools record what actually ran.
 - **Outside contributors' commits will not follow the format.** The landing
-  guidance gives three routes: rebase them as written, squash them with a
-  composed message, or reword them; whatever the route, the prepared branch
-  must reach the pull request's head, pushed by you where they allow edits or
-  by them.
-- **No summary of a multi-commit branch in history** under rebase or
-  fast-forward. Each commit has to stand on its own; the pull request's overview
-  lives only on the forge.
+  guidance gives three routes: land them as written through a candidate on a
+  maintainer-owned branch, squash them with a composed message, or ask the
+  contributor to fold and reword.
+- **The merge commit is the only summary of a multi-commit branch in history:**
+  Git's subject, the pull request's URL and the integration's evidence. Each
+  commit still has to stand on its own; the review brief lives only on the
+  forge.
 - **Issues close by hand.** Without closing keywords, someone closes each
   delivered issue after landing. That is one action per issue, traded for
   keywords that behave differently on different forges and target branches.
@@ -461,11 +477,16 @@ hypothesis the format is built to make testable, not a measured effect.
 The judging was blind but not neutral. In the commit research, all twelve
 first-place votes went to a proposal from the judge's own model family. In the
 pull-request research, each model's synthesis kept its own section structure.
-Contested questions were settled on the evidence, not on the votes. The
-intermediate proposals, judgements and run records are not published, so the
-process statistics are the authors' account; the primary sources behind every
-external claim are cited and were re-fetched by an independent audit before
-this version.
+In the landing research, two researchers from different families worked blind,
+then each graded the other's claims against their sources; one audit found a
+third of the other's claims wrong or overstated, the other found one, and the
+record prefers the position the audits support. Contested questions were
+settled on the evidence, not on the votes. No landing was exercised on a live
+forge: the landing steps rest on the forges' documentation and source and on
+local Git experiments. The intermediate proposals, judgements and run records
+are not published, so the process statistics are the authors' account; the
+primary sources behind every external claim are cited and were re-fetched by
+an independent audit before this version.
 
 Before relying on it:
 
@@ -486,35 +507,42 @@ Before relying on it:
   over area subjects.
 - Evidence that review bots read commit messages, which would let the pull
   request's lead shrink.
+- A landing exercised end to end on each forge by the documented steps, which
+  would turn the landing guidance from a reading of documentation and source
+  into an observed procedure.
+- A measurement of how agents retrieve from a merge graph against a linear
+  history, which decides whether the integration merge costs readers anything.
+- An observation that a merge queue lands the exact object it checked under
+  the merge method, which is established for squash and inferred for merge.
 
 ## Licence
 
-MIT, for the repository as a whole. The three files under `guidance/` are in
-addition dedicated to the public domain under CC0 1.0, so you can paste them,
-whole or in part, into any repository's guidance without carrying a notice.
+MIT, for the repository as a whole, the guidance files included.
 
 ## The research
 
-| Folder | Question | Main document |
-|---|---|---|
-| [`research/2026-10-02-commit-message-formats/`](research/2026-10-02-commit-message-formats/) | What commit-message format serves best when agents write and read most of the history? | `REPORT.md`, about 13,000 words |
-| [`research/2026-10-05-pull-request-body/`](research/2026-10-05-pull-request-body/) | What should a pull-request body hold when branches land by rebase and fast-forward? | `REPORT.md`, about 5,000 words |
+| File | Question |
+|---|---|
+| [`research/commit-messages.md`](research/commit-messages.md) | What commit-message format serves best when agents write and read most of the history? |
+| [`research/pull-requests.md`](research/pull-requests.md) | What should a pull-request body hold, and how should a reviewed branch land? |
 
-Each folder's `README.md` explains how that research ran. In short, models from
-two families, Claude and GPT, wrote proposals blind. In the commit research, four
-judges, two from each family, ranked them over three rounds, and the report was
-cross-checked four times by the family that did not write it. In the
-pull-request research, each model judged the other's proposal and wrote a
-synthesis; one synthesis became the report, edited afterwards. Every claim cites
-its primary source. The intermediate proposals, judgements and run records are
-not included.
+Each file is the current state of what is known on its topic, and ends with a
+dated method log saying how each conclusion was reached and what changed since.
+In short, models from two families, Claude and GPT, wrote proposals blind. In
+the commit research, four judges, two from each family, ranked them over three
+rounds, and the report was cross-checked four times by the family that did not
+write it. In the pull-request research, each model judged the other's proposal
+and wrote a synthesis; one synthesis became the report, edited afterwards. In
+the landing research, two researchers worked blind, each then graded the other's
+claims against their sources and wrote a synthesis, and the record was merged
+from both. Every claim cites its primary source. The intermediate proposals,
+judgements and run records are not included.
 
-The finished guidance under [`guidance/`](guidance/) departs from the research
-drafts in a few places, each noted at the top of the draft it supersedes: the
-`Introduced-by:` key, the area derivation, the pull-request title's header
-profile and native subjects, the lead and the `Check`, `Try` and `Not in this
-PR` wording, the one-sentence landing comment, the limit on pasted output in the
-body, and landing as an optional part, with rebase admitted as the fallback to
-the fast-forward push. The pull-request report also says its cited reviewer
-experiment had no result for commercial reviewers; the package does include a
-closed model, which showed no rise in approvals.
+The finished guidance under [`guidance/`](guidance/) is the research's
+recommendation as adopted. Where it departs from a report, the report's method
+log says where and why: the `Introduced-by:` key, the area derivation, the
+pull-request title's header profile and native subjects, the lead and the
+`Check`, `Try` and `Not in this PR` wording, the limit on pasted output in the
+body, and landing as an optional part. The pull-request report also says its
+cited reviewer experiment had no result for commercial reviewers; the package
+does include a closed model, which showed no rise in approvals.

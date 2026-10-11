@@ -1,5 +1,66 @@
 # Changelog
 
+## 0.4.0 — 2026-10-11
+
+- A reviewed branch lands as a checked integration candidate: a merge
+  commit whose first parent is the target's tip and whose second is the
+  approved head, built before landing, checked as the tree that lands,
+  signed, and carrying its own `Verified:` line and the pull request's
+  URL; the target then advances to exactly that commit, and no reviewed
+  commit is rewritten. Rebasing before a fast-forward, the earlier
+  default, replayed every commit as a new object with a tree the checks
+  need not have run on and without its signature. `landing.md` gives the
+  steps for GitHub with and without a merge queue, Forgejo, GitLab and
+  plain Git, what each method does to the commits, and the settings;
+  Gitea was not checked. The one rewrite a branch gets, folding its
+  fix-ups, comes before its final approval.
+- A merge that resolves nothing still owes the evidence pair for its
+  tree, and may carry the pull request's URL under `Refs:` and reviewer
+  trailers; a merge the forge made, carrying its default message, is
+  the exception, its evidence being the forge's run read back at
+  landing. The hook asks a merge for evidence when what it brings in
+  goes beyond documentation and exempts a merge whose committer is a
+  forge (`forge_merge_committers`).
+- A hash in a message names an ancestor of the commit; a rebound
+  `Verified:` line keeps its check, names the earlier tree in words, and
+  declares the new tree's gap with what the rewrite did to the commit's
+  files. The hook confirms the rule for a hash in a `Verified:` line's
+  tested-contents part or in `Introduced-by:`, against the commit's
+  parents.
+- The body leads with the problem or goal as it reached the writer, in
+  its own words, and is owed only where it says more than the subject's
+  inverse: a subject that already states the gap may stand alone with
+  the evidence pair, which the hook accepts. A source is named only
+  where it gives the reader something the commit cannot, never the
+  person the writer works for; footing marks a given claim rather than
+  its giver; the floor is the one phrase "reason not available to the
+  writer". The pull-request lead follows the same rule, and the examples
+  that taught "the maintainer asked" and "no issue exists" are replaced.
+- Hook: the typed profile's consistency check leaves native merge and
+  revert subjects alone; under the paragraph marker the
+  `BREAKING CHANGE:` paragraph and the `Breaking-Change:` trailer are
+  each asked for when the other is present, the paragraph last and not
+  empty; a scope directory is skipped only inside a collection
+  directory; `--range` flags an unfolded autosquash commit; `--repo`
+  from another directory sees a merge in progress; one long token
+  excuses only itself from the width rule; an outcome may not begin
+  with a digit, and a changed file's own name may open it in its own
+  case; manifests such as `package.json` and `pyproject.toml` count as
+  dependency files.
+- The two bundled skills are held to the skill-and-plugin-authoring
+  skill, which the repository now carries for Codex and Claude Code:
+  the descriptions name the job and when to invoke, and adoption,
+  rewrites, the fold before approval and the worked examples sit in
+  references behind pointers.
+- The research record is organised by topic, `research/commit-messages.md`
+  and `research/pull-requests.md`, each the current state of what is
+  known and ending in a dated method log; the landing research of
+  11 October 2026 is merged into the pull-request record. The dated
+  directories and the guidance drafts are gone.
+- The guidance files are MIT like the rest of the repository; the
+  README no longer dedicates them to the public domain under CC0 1.0,
+  a dedication whose text the repository never carried.
+
 ## 0.3.3 — 2026-10-10
 
 - `commit-msg --message-file <draft>` on its own checks the draft against
