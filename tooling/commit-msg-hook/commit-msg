@@ -96,7 +96,10 @@ TRIVIAL_OUTCOME_RE = re.compile(
 )
 RENAME_SUBJECT_RE = re.compile(r"\b(rename|move)[sd]?\b")
 DEPENDENCY_FILES = {"go.mod", "go.sum", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "cargo.lock", "poetry.lock",
-                    "pipfile.lock", "gemfile.lock", "composer.lock", "requirements.txt", "uv.lock", "packages.lock.json"}
+                    "pipfile.lock", "gemfile.lock", "composer.lock", "requirements.txt", "uv.lock", "packages.lock.json",
+                    "package.json", "cargo.toml", "pyproject.toml", "gemfile", "pipfile", "pom.xml", "build.gradle",
+                    "build.gradle.kts", "gradle.lockfile", "mix.lock", "flake.lock", "deno.lock", "bun.lockb",
+                    "package.resolved", "environment.yml", "composer.json"}
 DOC_SUFFIXES = {".md", ".markdown", ".rst", ".adoc", ".org"}
 DOC_NAMES = {"license", "licence", "copying", "authors", "contributors", "notice", "changelog", "readme"}
 
@@ -174,7 +177,13 @@ def repo_root(repo=None):
 
 
 def git_path(repo, name):
-    return git("rev-parse", "--git-path", name, repo=repo).strip()
+    """A path inside the Git directory, absolute whatever the working directory."""
+    path = git("rev-parse", "--git-path", name, repo=repo).strip()
+    return path if os.path.isabs(path) else os.path.join(repo or os.getcwd(), path)
+
+
+def parents_of(repo, rev):
+    return git("rev-list", "--parents", "-n", "1", rev, repo=repo).split()[1:]
 
 
 def parse_name_status(blob):
@@ -195,8 +204,8 @@ def has_head(repo):
 
 
 def staged_paths(repo, message):
-    """(paths, pure_rename, merge, integrated) for the commit being made. A
-    merge in progress is checked against its resolutions (see
+    """(paths, pure_rename, merge, integrated, amend) for the commit being
+    made. A merge in progress is checked against its resolutions (see
     `resolution_paths`) and owes evidence for what it brings in (see
     `integrated_paths`). With nothing staged, a message whose subject is
     HEAD's is taken to be a message-only amend and uses HEAD's paths;
@@ -205,13 +214,14 @@ def staged_paths(repo, message):
     if os.path.exists(merge_head):
         with open(merge_head, encoding="utf-8") as handle:
             parents = ["HEAD"] + handle.read().split()
-        return resolution_paths(repo, parents), False, True, integrated_paths(repo, "HEAD")
+        return resolution_paths(repo, parents), False, True, integrated_paths(repo, "HEAD"), False
     paths, pure = parse_name_status(git("diff", "--cached", "--name-status", "-M", "-z", repo=repo))
     if not paths and has_head(repo):
         head_subject = git("show", "-s", "--format=%s", "HEAD", repo=repo).strip()
         if message.split("\n", 1)[0].strip() == head_subject:
             paths, pure = commit_paths(repo, "HEAD")
-    return paths, pure, False, None
+            return paths, pure, False, None, True
+    return paths, pure, False, None, False
 
 
 def commit_paths(repo, rev):
@@ -277,7 +287,7 @@ def parse_trailers(message):
 # --- configuration -----------------------------------------------------------
 
 DEFAULT_CONFIG = {"forge": "any", "header": "area", "breaking_marker": "trailer", "areas": [], "contract_docs": [],
-                  "issue_keys": [], "area_map": {}}
+                  "issue_keys": [], "area_map": {}, "forge_merge_committers": ["noreply@github.com"]}
 
 
 def load_config(root):
@@ -483,8 +493,12 @@ def check_subject(subject, paths, config, tracked):
     elif paths and area not in allowed:
         findings.append(f"area `{area}` does not come from the changed paths; use one of {allowed_text}, "
                         "or add a path-map entry")
+    if outcome[:1].isdigit():
+        findings.append("the outcome after the colon begins with a digit; begin with what the change does")
     first_word = re.match(r"[^\W\d_]+", outcome)
-    if first_word and first_word.group(0)[0].isupper() and first_word.group(0)[1:].islower():
+    names = {n for p in paths for n in (PurePosixPath(p).name, PurePosixPath(p).stem)}
+    if (first_word and first_word.group(0)[0].isupper() and first_word.group(0)[1:].islower()
+            and first_word.group(0) not in names):
         findings.append("the outcome after the colon starts with a capital letter; begin it in lower case "
                         "(identifiers keep their case)")
     if subject.endswith("."):
@@ -503,7 +517,9 @@ def check_subject(subject, paths, config, tracked):
 def check_body(lines, groups, trailer_block):
     findings = []
     for index, line in enumerate(lines[1:], start=2):
-        if len(line) > LINE_LIMIT and not any(len(token) > 50 for token in line.split()):
+        longest = max((len(token) for token in line.split()), default=0)
+        # One unbreakable token (a URL, a path) may overrun; the words around it still wrap.
+        if len(line) > LINE_LIMIT and not (longest > 50 and len(line) - longest <= LINE_LIMIT):
             findings.append(f"line {index} is {len(line)} columns; wrap at {LINE_LIMIT}")
         if re.match(r"^#{1,6} \S", line):
             findings.append(f"line {index} is a heading; the body is prose without headings")
@@ -594,20 +610,29 @@ def check_trailer_values(trailers, repo, bang, config, anchors=(), native=False)
 def check_breaking_paragraph(groups, trailers, trailer_block, config):
     """Under the paragraph marker, a break is declared twice: the trailer for
     this format's readers and a `BREAKING CHANGE:` paragraph, last in the
-    body, for the release parser. Each without the other is a finding."""
+    body and not empty, for the release parser. Each without the other is a
+    finding."""
     if config["header"] != "typed" or config["breaking_marker"] != "paragraph":
         return []
     has_trailer = any(key.lower() == "breaking-change" for key, _ in trailers)
     body_groups = groups[:-1] if trailer_block else groups
-    last = body_groups[-1][1][0] if len(body_groups) > 1 else ""
-    has_paragraph = last.startswith("BREAKING CHANGE:")
-    if has_trailer and not has_paragraph:
-        return ["this repository's release parser reads a `BREAKING CHANGE:` paragraph, which is missing; write it "
-                "last in the body, outside the trailer block, beside the `Breaking-Change:` trailer"]
-    if has_paragraph and not has_trailer:
-        return ["a `BREAKING CHANGE:` paragraph without the `Breaking-Change:` trailer; add the trailer, which this "
-                "format's readers extract"]
-    return []
+    marked = [i for i, (_, group) in enumerate(body_groups) if group[0].startswith("BREAKING CHANGE:")]
+    if not marked:
+        if has_trailer:
+            return ["this repository's release parser reads a `BREAKING CHANGE:` paragraph, which is missing; write "
+                    "it last in the body, outside the trailer block, beside the `Breaking-Change:` trailer"]
+        return []
+    findings = []
+    if not has_trailer:
+        findings.append("a `BREAKING CHANGE:` paragraph without the `Breaking-Change:` trailer; add the trailer, "
+                        "which this format's readers extract")
+    if marked[-1] != len(body_groups) - 1:
+        findings.append("the `BREAKING CHANGE:` paragraph must be the last paragraph of the body, directly before "
+                        "the trailer block")
+    text = " ".join(body_groups[marked[-1]][1])[len("BREAKING CHANGE:"):].strip()
+    if not text:
+        findings.append("the `BREAKING CHANGE:` paragraph is empty; say what breaks and what the consumer must do")
+    return findings
 
 
 def check_introduced_by(value, repo, anchors=()):
@@ -637,11 +662,14 @@ def forbidden_content(message, config):
 
 
 def check_message(message, paths, config, tracked=(), repo=None, merge=False, pure_rename=False,
-                  integrated=None, anchors=()):
+                  integrated=None, anchors=(), committer=None):
     """All findings for one message. For a merge, `paths` are its resolutions
     and `integrated` what it brings in against its first parent. `anchors`
-    are the commits a cited hash must descend from: the commit itself, or the
-    parents of one being made."""
+    are the commits a cited hash must descend from: the parents of the commit,
+    recorded or about to be made. A merge whose `committer` is a forge
+    (`forge_merge_committers`) carried no message anyone could write, so it
+    owes neither a body nor the evidence pair; its evidence is the forge's
+    run, read back at landing."""
     findings = forbidden_content(message, config)
     # Blanked rather than cut, so later findings keep the message's line numbers.
     kept_list = CONFLICT_LIST_RE.search(message)
@@ -667,16 +695,20 @@ def check_message(message, paths, config, tracked=(), repo=None, merge=False, pu
     findings.extend(check_trailer_values(trailers, repo, bang, config, anchors, native))
     findings.extend(check_breaking_paragraph(groups, trailers, trailer_block, config))
     has_body = len(groups) > (1 if trailer_block else 0)
+    has_evidence = any(key.lower() in ("verified", "not-verified") for key, _ in trailers)
+    forge_made = merge and committer is not None and committer in config["forge_merge_committers"]
+    if forge_made:
+        return findings
     outcome = subject.split(": ", 1)[1] if ": " in subject else subject
     trivial = (pure_rename and RENAME_SUBJECT_RE.search(outcome.lower())) or TRIVIAL_OUTCOME_RE.match(outcome.lower())
     if is_dependency_change(paths):
         trivial = False
-    if not has_body and (paths if merge else not trivial):
-        findings.append("the body is missing; only a subject naming a typo, broken link, formatting, comment "
-                        "wording, a rename with no callers changed, or a regenerated artefact may omit it"
+    if not has_body and (paths if merge else (is_dependency_change(paths) or not (trivial or has_evidence))):
+        findings.append("the body is missing; a subject that already states the gap may omit it only together "
+                        "with the evidence pair, and only a subject naming a typo, broken link, formatting, "
+                        "comment wording, a rename with no callers changed, or a regenerated artefact may omit both"
                         + (", and a merge only when it resolves nothing" if merge else ""))
     needing = [p for p in ((integrated or []) if merge else paths) if not is_documentation(p, config)]
-    has_evidence = any(key.lower() in ("verified", "not-verified") for key, _ in trailers)
     if needing and not has_evidence:
         findings.append("no `Verified:` or `Not-verified:` trailer, but the "
                         + ("merge brings in " if merge else "commit changes ") + needing[0]
@@ -690,28 +722,34 @@ def check_message(message, paths, config, tracked=(), repo=None, merge=False, pu
 # --- entry points ------------------------------------------------------------
 
 def rev_paths(repo, rev):
-    """(sha, paths, pure_rename, merge, integrated) for an existing commit; a
-    merge's paths are its resolutions (see `resolution_paths`) and
+    """(sha, paths, pure_rename, merge, integrated, committer) for an existing
+    commit; a merge's paths are its resolutions (see `resolution_paths`) and
     `integrated` what it brings in (see `integrated_paths`)."""
     sha = git("rev-parse", "--verify", f"{rev}^{{commit}}", repo=repo).strip()
-    parents = git("show", "-s", "--format=%P", sha, repo=repo).split()
+    parents, committer = git("show", "-s", "--format=%P%n%ce", sha, repo=repo).split("\n")[:2]
+    parents = parents.split()
     if len(parents) > 1:
-        return sha, resolution_paths(repo, parents, sha), False, True, integrated_paths(repo, parents[0], sha)
+        return sha, resolution_paths(repo, parents, sha), False, True, integrated_paths(repo, parents[0], sha), committer
     paths, pure = commit_paths(repo, sha)
-    return sha, paths, pure, False, None
+    return sha, paths, pure, False, None, committer
 
 
-def staged_anchors(repo, merge):
-    """The commits a hash cited by the commit being made must descend from."""
+def staged_anchors(repo, merge, amend=False):
+    """The commits a hash cited by the commit being made must descend from:
+    its parents, which for a message-only amend are HEAD's parents."""
     if not has_head(repo):
         return []
+    if amend:
+        return parents_of(repo, "HEAD")
     return ["HEAD", "MERGE_HEAD"] if merge else ["HEAD"]
 
 
 def check_against_rev(repo, rev, message, config):
-    """Findings for `message` as the message of the commit at `rev`."""
-    sha, paths, pure, merge, integrated = rev_paths(repo, rev)
-    return sha, check_message(message, paths, config, tracked_files(repo, sha), repo, merge, pure, integrated, [sha])
+    """Findings for `message` as the message of the commit at `rev`, or of
+    the commit that replaces it, which has the same parents."""
+    sha, paths, pure, merge, integrated, committer = rev_paths(repo, rev)
+    return sha, check_message(message, paths, config, tracked_files(repo, sha), repo, merge, pure, integrated,
+                              parents_of(repo, sha), committer)
 
 
 def check_rev(repo, rev, config):
@@ -779,15 +817,15 @@ def main(argv=None):
                     raise CheckError("not inside a git repository; give --paths to check a message against named paths")
                 # Checked as recorded by `git commit -F`, which keeps comment
                 # lines, so nothing is stripped here.
-                paths, pure, merge, integrated = staged_paths(root, message)
+                paths, pure, merge, integrated, amend = staged_paths(root, message)
                 findings = check_message(message, paths, config, tracked_files(root), root, merge, pure,
-                                         integrated, staged_anchors(root, merge))
+                                         integrated, staged_anchors(root, merge, amend))
                 label = "draft message"
         elif args.areas:
             if not root:
                 raise CheckError("not inside a git repository")
             if args.rev:
-                sha, paths, _, _, _ = rev_paths(root, args.rev)
+                sha, paths, _, _, _, _ = rev_paths(root, args.rev)
                 tracked = tracked_files(root, sha)
             else:
                 paths = staged_paths(root, "")[0]
@@ -802,6 +840,9 @@ def main(argv=None):
             failed = 0
             for sha in shas:
                 sha, message, findings = check_rev(root, sha, config)
+                if message.split("\n", 1)[0].startswith(AUTOSQUASH_PREFIXES):
+                    findings = findings + ["an autosquash commit (fixup!, squash! or amend!) is in the range; "
+                                           "fold it before the branch lands"]
                 if findings:
                     failed += 1
                     report(sha[:12], message, findings)
@@ -830,9 +871,9 @@ def main(argv=None):
                 else:
                     return 0  # Git aborts an empty message itself
             else:
-                paths, pure, merge, integrated = staged_paths(root, message)
+                paths, pure, merge, integrated, amend = staged_paths(root, message)
                 findings += [f for f in check_message(message, paths, config, tracked_files(root), root, merge, pure,
-                                                      integrated, staged_anchors(root, merge))
+                                                      integrated, staged_anchors(root, merge, amend))
                              if f not in findings]
             label = "commit message"
         else:

@@ -65,8 +65,46 @@ TYPED_REVERT = ('Revert "api: drop the v1 endpoint"\n\nThis reverts commit 12345
                 "Verified: final contents; go test ./...; ok 12 packages\n"
                 "Breaking-Change: the v1 endpoint returns; clients on v2 are unaffected\n")
 
+EV = "Verified: final contents; go test ./...; ok 12 packages\n"
+LONG = "x" * 51
+TYPED_BREAK_SOLE = ("feat(api): drop the v1 endpoint\n\nBREAKING CHANGE: the v1 endpoint is gone; call v2.\n\n"
+                    + EV + "Breaking-Change: the v1 endpoint is gone; call v2\n")
+TYPED_BREAK_EMPTY = ("feat(api): drop the v1 endpoint\n\nThe v1 endpoint is retired.\n\nBREAKING CHANGE:\n\n"
+                     + EV + "Breaking-Change: the v1 endpoint is gone; call v2\n")
+TYPED_BREAK_EARLY = ("feat(api): drop the v1 endpoint\n\nBREAKING CHANGE: the v1 endpoint is gone; call v2.\n\n"
+                     "The v1 endpoint is retired.\n\n" + EV + "Breaking-Change: the v1 endpoint is gone; call v2\n")
+
 CASES = [
     # name, paths, tracked, message, expectation (clean | fragment), config overrides
+    ("compact form: a subject that states the gap plus the evidence pair passes", ["internal/api/handler.go"], GO,
+     "api: reject requests whose body exceeds the declared length\n\n" + EV, "clean", {}),
+    ("compact form: no body and no evidence is a missing body", ["internal/api/handler.go"], GO,
+     "api: reject requests whose body exceeds the declared length\n", "body is missing", {}),
+    ("an outcome that begins with a digit is flagged", ["internal/api/handler.go"], GO,
+     "api: 123 requests per second\n\nBody.\n\n" + EV, "begins with a digit", {}),
+    ("a changed file's name may open the outcome in its own case", ["Dockerfile"], ["Dockerfile", "README.md"],
+     "dockerfile: Dockerfile builds the image from alpine\n\nBody.\n\n" + EV, "clean", {}),
+    ("a long token excuses only itself, not the prose around it", ["internal/api/handler.go"], GO,
+     "api: log the request path\n\nThe path " + LONG + " is logged whenever a request arrives so that an operator can find it.\n\n" + EV,
+     "columns", {}),
+    ("a line that is one long token and a few words passes", ["internal/api/handler.go"], GO,
+     "api: log the request path\n\nSee " + LONG + " for the path.\n\n" + EV, "clean", {}),
+    ("an issue number in the subject is flagged by default", ["internal/api/handler.go"], GO,
+     "api: close #42 by rejecting empty bodies\n\nBody.\n\n" + EV, "issue reference", {}),
+    ("a Refs value must be an absolute URL", ["internal/api/handler.go"], GO,
+     "api: reject empty bodies\n\nBody.\n\n" + EV + "Refs: #42\n", "absolute http(s) URL", {}),
+    ("a heading in the body is flagged", ["internal/api/handler.go"], GO,
+     "api: reject empty bodies\n\n## Why\n\nBody.\n\n" + EV, "heading", {}),
+    ("the second line must be blank", ["internal/api/handler.go"], GO,
+     "api: reject empty bodies\nBody.\n\n" + EV, "second line must be blank", {}),
+    ("a manifest change is never trivial", ["pyproject.toml"], PY_SRC + ["pyproject.toml"],
+     "pyproject: fix typo in the description\n", "body is missing", {}),
+    ("typed, paragraph marker: a sole breaking paragraph is the body", ["internal/api/handler.go"], GO,
+     TYPED_BREAK_SOLE, "clean", {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: an empty breaking paragraph is flagged", ["internal/api/handler.go"], GO,
+     TYPED_BREAK_EMPTY, "empty", {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: the breaking paragraph must come last", ["internal/api/handler.go"], GO,
+     TYPED_BREAK_EARLY, "last paragraph", {"header": "typed", "breaking_marker": "paragraph"}),
     ("a scope directory outside a collection is the area", ["@acme/payments/src/charge.ts"], SCOPED,
      "acme: charge in minor units\n\nThe requirement is X.\n\nVerified: final contents; npm test; 4 passed\n", "clean", {}),
     ("a scope directory outside a collection is not skipped", ["@acme/payments/src/charge.ts"], SCOPED,
@@ -117,7 +155,7 @@ CASES = [
     ("identifiers with a hyphen and digits pass", ["internal/api/handler.go"], GO,
      "api: hash UTF-8 bodies with SHA-256\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "clean", {}),
     ("licence identifier in subject", ["LICENSE"], ["LICENSE", "README.md"],
-     "license: release under AGPL-3.0-or-later\n\nThe owner asked for the AGPL.\n", "clean", {}),
+     "license: release under AGPL-3.0-or-later\n\nThe code is published under the AGPL so that hosted forks publish\ntheir changes.\n", "clean", {}),
     ("configured key is caught beside an identifier", ["internal/api/handler.go"], GO,
      "api: reject PROJ-42 bodies that are not UTF-8\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n",
      "issue reference", {"issue_keys": ["PROJ"]}),

@@ -424,6 +424,54 @@ def _(repo):
     return r.returncode != 0 and "issue reference" in r.stderr
 
 
+@case("a draft for an amend may cite HEAD's parent but not HEAD itself")
+def _(repo):
+    parent = git(repo, "rev-parse", "--short=12", "HEAD").strip()
+    write(repo, "internal/scheduler/worker.go"); git(repo, "add", "-A")
+    assert commit(repo, "scheduler: renew leases before they expire\n\nBody.\n\n" + EVIDENCE).returncode == 0
+    head = git(repo, "rev-parse", "--short=12", "HEAD").strip()
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write(f"scheduler: renew leases before they expire\n\nBody.\n\nVerified: {head}; go test ./...; ok 12 packages\n")
+    citing_head = hook(repo, "--message-file", draft, "--rev", "HEAD")
+    with open(draft, "w") as handle:
+        handle.write(f"scheduler: renew leases before they expire\n\nBody.\n\nVerified: {parent}; go test ./...; ok 12 packages\n")
+    citing_parent = hook(repo, "--message-file", draft, "--rev", "HEAD")
+    return citing_head.returncode == 1 and "not an ancestor" in citing_head.stderr and citing_parent.returncode == 0
+
+
+@case("a merge the forge made owes neither body nor evidence")
+def _(repo):
+    side_commit(repo)
+    env = dict(os.environ, GIT_COMMITTER_NAME="GitHub", GIT_COMMITTER_EMAIL="noreply@github.com")
+    assert run(repo, "git", "merge", "--no-ff", "--no-verify", "-m", "Merge pull request #7 from owner/side", "side", env=env).returncode == 0
+    return hook(repo, "--rev", "HEAD").returncode == 0
+
+
+@case("--repo from another directory still sees a merge in progress")
+def _(repo):
+    side_commit(repo)
+    assert run(repo, "git", "merge", "--no-commit", "--no-ff", "side").returncode == 0
+    draft = os.path.join(repo, ".git", "gc-draft")
+    with open(draft, "w") as handle:
+        handle.write("Merge branch 'side'\n\n" + EVIDENCE)
+    elsewhere = tempfile.mkdtemp(prefix="gc-elsewhere-")
+    try:
+        r = subprocess.run([sys.executable, HOOK, "--repo", repo, "--message-file", draft], cwd=elsewhere,
+                           capture_output=True, text=True)
+    finally:
+        shutil.rmtree(elsewhere, ignore_errors=True)
+    return r.returncode == 0, r.stderr
+
+
+@case("an autosquash commit is accepted when made and flagged in a range")
+def _(repo):
+    write(repo, "internal/scheduler/worker.go"); git(repo, "add", "-A")
+    made = commit(repo, "fixup! scheduler: renew leases before they expire\n")
+    r = hook(repo, "--range", "HEAD~1..HEAD")
+    return made.returncode == 0 and r.returncode == 1 and "autosquash" in r.stderr
+
+
 def main():
     failures = 0
     for name, fn in CASES:
