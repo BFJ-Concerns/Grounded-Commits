@@ -44,8 +44,8 @@ how branches land.
    one from it. [`tooling/README.md`](tooling/README.md) covers that, the
    optional configuration and the `--range` check for CI and landing.
 3. **Optionally, decide how branches land** with
-   [`guidance/landing.md`](guidance/landing.md). Fast-forward is the default,
-   rebase the fallback; every merge method is covered.
+   [`guidance/landing.md`](guidance/landing.md). A checked integration
+   candidate is the default; every merge method is covered.
 
 Here is what a commit looks like:
 
@@ -131,12 +131,11 @@ work on a branch → commits carry the record → the PR body guides review
   learn what changed, why, and what was checked, without the forge.
 - **The pull request is for review.** Its body helps whoever is reviewing now,
   and is written so that it can be thrown away.
-- **Landing is your choice.** Fast-forward lands the prepared tip unchanged and
-  is the default; rebase keeps the messages, on GitHub at the cost of the
-  hashes and your signatures, and is the fallback a repository chooses once
-  where its forge cannot fast-forward; merge commits and squashes work with a
-  little configuration. [`guidance/landing.md`](guidance/landing.md) has the
-  table.
+- **Landing is your choice.** The default builds the merge commit before it
+  lands, checks it as the object that will land and advances the target to
+  it, so no reviewed commit is rewritten; squash works with a composed
+  message; rebasing before a fast-forward replays every commit and is not
+  used. [`guidance/landing.md`](guidance/landing.md) has the table.
 
 ## Commit messages
 
@@ -379,34 +378,35 @@ Nothing in it repeats a commit's reasoning, lists files or claims a result.
 ## Landing
 
 The landing guide is optional, but knowing what your merge method does to the
-commit messages is not, because they are the record. The default is
-**fast-forward**: the branch is folded, reworded where review changed it,
-rebased onto the target, pushed once with a one-sentence comment saying whether
-the tip's tree and messages still match the reviewed head, and the target moves
-to its tip, so the prepared tip lands unchanged, hashes and signatures included.
-GitLab, Forgejo, Gitea and plain Git offer it as a setting; on GitHub it is a
-direct push of the approved tip. **Rebase** is the fallback a repository chooses
-once where its landing identity may not push: on GitHub the forge replays the
-commits as new objects, keeping their messages, once an originally empty
-commit's has been folded into a neighbour, but not their hashes or your
-signatures; Forgejo and Gitea rewrite only a branch that is behind or one a
-merge template amends. Squash creates new commits everywhere, so a repository
-that signs its commits lands by fast-forward or merge commit. Merge commits work
-when the merge message is set to the pull-request title only. Squashes work when
-the landing agent composes the squash message in the commit format from the
-branch's commits and supplies it explicitly, so the pull-request body never
-becomes a commit message.
+commits is not, because they are the record. The default lands a **checked
+integration candidate**: a merge commit whose first parent is the target's tip
+and whose second is the approved head, built before landing, checked as the
+object that will land, signed by whoever made it, carrying the pull request's
+URL and a `Verified:` line for its own tree; then the target advances to
+exactly that commit. No reviewed commit is rewritten, so every hash, tree,
+message and signature the reviewers saw is what lands, and the one new tree is
+the one that was checked. On GitHub a merge queue builds and lands the
+candidate; on Forgejo and Gitea the agent stages it on the pull-request branch
+and lands it with the fast-forward-only style; on GitLab the same staging
+under the fast-forward method, or merge trains.
 
-Whatever the method, four things hold: under fast-forward and merge commits
-every message lands as written or as deliberately reworded, under rebase the
-same, an originally empty commit's message having been folded into a neighbour
-first, and under squash the one landed message is composed from them, never
-taken from the forge's default; nothing from the pull-request body enters
-history; the landing comment says whether the landed tip still matches the
-reviewed head; and issues are closed by hand after landing. The methods, their
-costs and the settings for each forge are in
-[`guidance/landing.md`](guidance/landing.md), including the one way to
-fast-forward on GitHub and what to do with pull requests from forks.
+Rebasing before a fast-forward, whether the forge does it or you do, replays
+every commit as a new object: new trees the checks never ran on, signatures
+gone, every evidence line to rebind. Squash does the same in one commit, and is
+supported where a repository wants one commit per pull request, with the
+landing agent composing its message in the commit format from the branch's
+commits. A forge's merge of a branch that fell behind lands a tree nobody
+checked, because the forge's checks ran on a temporary merge and recorded the
+result against the head's hash; the up-to-date rule and the merge queue exist
+to close that gap.
+
+Whatever the method, four things hold: the reviewed commits land unchanged, or
+under squash the one landed message is composed from them, never taken from
+the forge's default; the landed tree was checked as the object that lands;
+nothing from the pull-request body enters history; and issues are closed by
+hand after landing. The methods, their costs and the settings for each forge
+are in [`guidance/landing.md`](guidance/landing.md), including pull requests
+from forks.
 
 ## Hurdles and trade-offs
 
@@ -414,19 +414,20 @@ fast-forward on GitHub and what to do with pull requests from forks.
   overrides both, but only the `commit-msg` hook makes it stick, and a local
   hook sees only the commits made where it is installed. Run the hook's
   `--range` check over a branch before it lands, or in CI.
-- **Rebasing changes what was tested.** If the target branch moved, the rebased
-  code is not the code the checks ran on. Run them again, or record the gap with
-  `Not-verified:`.
+- **Integration changes what was tested.** If the target moved, the merged tree
+  is one no branch commit's checks ran on. The candidate is checked before it
+  lands and carries its own `Verified:` line; rewriting the branch instead would
+  owe that per commit.
 - **`Verified:` is self-reported.** The hook checks its shape, not its truth.
   Review and sampling do the rest, until tools record what actually ran.
 - **Outside contributors' commits will not follow the format.** The landing
-  guidance gives three routes: rebase them as written, squash them with a
-  composed message, or reword them; whatever the route, the prepared branch
-  must reach the pull request's head, pushed by you where they allow edits or
-  by them.
-- **No summary of a multi-commit branch in history** under rebase or
-  fast-forward. Each commit has to stand on its own; the pull request's overview
-  lives only on the forge.
+  guidance gives three routes: land them as written through a candidate on a
+  maintainer-owned branch, squash them with a composed message, or ask the
+  contributor to fold and reword.
+- **The merge commit is the only summary of a multi-commit branch in history:**
+  Git's subject, the pull request's URL and the integration's evidence. Each
+  commit still has to stand on its own; the review brief lives only on the
+  forge.
 - **Issues close by hand.** Without closing keywords, someone closes each
   delivered issue after landing. That is one action per issue, traded for
   keywords that behave differently on different forges and target branches.

@@ -356,4 +356,4 @@ Refs: https://forge.example/ops/app/issues/214
 ```
 
 For a trivial change, a defect repair carrying `Introduced-by:`, or evidence
-rebound after a rebase, read `references/examples.md`.
+rebound after a rewrite, read `references/examples.md`.
