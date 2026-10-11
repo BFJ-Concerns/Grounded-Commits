@@ -6,15 +6,14 @@ contents` only when you re-ran the check on the new commit, or its tree is the
 tree that was tested — `git rev-parse <tested>^{tree} <new>^{tree}` prints the
 same hash twice. A message-only amend keeps the tree; a replay onto a moved
 base usually changes it, even when it applied cleanly, and a re-run on the tip
-covers the tip alone. Otherwise rebind before you create the new commit, in
-one of two ways: re-run the check on the new tree; or, where the rewrite
-changed no file this commit touches (`git diff <tested> <new> -- <its paths>`
-prints nothing), replace `final contents` with "the tree before the rewrite,
-which changed no file this commit touches" and keep the check and its
-outcome. Where neither holds, replace `final contents` with "the tree before
-the rewrite" and add a `Not-verified:` for the new tree scoped to the claim
-(`behaviour preservation`, `reproduction`, `performance effect`, else `final
-contents`). Never name the replaced commit by hash: nothing keeps it
+covers the tip alone. Otherwise rebind before you create the new commit:
+re-run the check on the new tree; or replace `final contents` with "the tree
+before the rewrite", keep the check and its outcome, and add a
+`Not-verified:` for the new tree scoped to the claim (`behaviour
+preservation`, `reproduction`, `performance effect`, else `final contents`)
+whose reason says what the rewrite did to this commit's files, "the fold
+changed no file this commit touches and the suite was not re-run" where
+`git diff <tested> <new> -- <its paths>` prints nothing, else that it did. Never name the replaced commit by hash: nothing keeps it
 reachable, and a reader who cannot open it learns only that the published
 tree was not tested. Wrap the rebound lines like any other. Check every
 commit a rewrite produced, not only the tip; where the branch will land by

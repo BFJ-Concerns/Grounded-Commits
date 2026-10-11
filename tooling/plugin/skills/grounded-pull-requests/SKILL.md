@@ -130,15 +130,18 @@ the reviewers' findings are settled, read `references/before-landing.md` for
 folding the fix-ups, rebinding their evidence, signing, and the push comment.
 
 Approval is then given, or given again, on the folded head, and from that
-point no commit on the branch is rewritten: a late finding is a fix-up commit
-and another approval, or the pull request waits.
+point no commit on the branch is rewritten: a late finding is an ordinary
+commit with its own message and evidence, never an autosquash fix-up, and
+another approval, or the pull request waits.
 
-Landing never rebases the branch onto the target. A branch that is behind is
-integrated by a merge commit whose first parent is the target's tip and whose
-second is the approved head, built and checked before it lands, and the
-target advances to exactly that commit; `references/landing.md`, relative to
-this skill's directory, gives the steps on each forge, what each method does
-to the commits, and the settings. Under squash the landing message is
+Where the repository follows the landing guidance, landing never rebases the
+branch onto the target: a branch that is behind is integrated by a merge
+commit whose first parent is the target's tip and whose second is the
+approved head, built and checked before it lands, and the target advances to
+exactly that commit; `references/landing.md`, relative to this skill's
+directory, gives the steps on each forge, what each method does to the
+commits, and the settings. A repository with its own landing policy keeps
+it, and still never rewrites an approved head. Under squash the landing message is
 composed from the branch's commits in the commit format, with the evidence
 rebound to the landed tree, and supplied explicitly; never the forge's
 default, and never this body. A pull request from a fork lands by the route

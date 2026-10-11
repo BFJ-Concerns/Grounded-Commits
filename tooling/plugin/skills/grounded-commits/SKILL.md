@@ -69,16 +69,18 @@ Prose wrapped at 72 columns, no headings, in this order:
    afterwards, as it reached you and in its own words; how it showed; and the
    identifiers a searcher would type, in sentences that still make sense once
    a link dies. It is owed only where it says more than the subject's
-   inverse: when the subject already names the gap, the body goes straight to
+   inverse: when the subject already names the gap and the change needs no
+   approach, alternative or limit the subject does not carry, the message is
+   the subject and the evidence pair; otherwise the body goes straight to
    the change. Name a source only where it gives the reader something the
    commit cannot: an issue, or a document a reader of the repository can open
    whose rule the project does not set, such as a standard or a platform's
    policy. Never the person you work for, who is the commit's author, and
    never the tool, review, planning record or model that surfaced the change.
    Mark footing only where a reader would otherwise take a statement as
-   observed, naming what was given rather than who gave it: "the reported
-   symptom, not reproduced here", "the diagnosis as supplied, not shown",
-   "this is expected to".
+   observed, naming what was given rather than who gave it: a symptom
+   reported but not reproduced here, a diagnosis supplied but not shown, an
+   expectation rather than an observation.
 2. **Change and approach** — what now happens, as behaviour, and why this way.
    Keep the symptom and the resulting behaviour even where the diff shows them.
    Never inventory the edits; name a directory or file only where the subject's
@@ -92,9 +94,9 @@ Every reason traces to something you observed, an issue or requirement you
 were pointed at, or an instruction in your brief, and is written as the
 reason rather than as the asking: "the README has no clone step", not "the
 author asked for a clone step". A reason read off the diff is a motive you
-were not given. When all you hold is the instruction, say the absence
-plainly, "no reason for the removal reached the writer", and let the body say
-what is now true. A diagnosis someone handed you stays a hypothesis until you
+were not given. When all you hold is the instruction, say so with the
+floor's one phrase, "reason not available to the writer", and let the body
+say what is now true. A diagnosis someone handed you stays a hypothesis until you
 observe it, and the body says which it is. A choice a later reader could take
 for an oversight, such as a licence left unchosen, says it is deliberate; an
 alternative you rejected goes under `Considered and rejected:` in the commit
@@ -105,9 +107,12 @@ record behind a change, write "reason not available to the writer" rather
 than reconstructing a motive. About ten lines is plenty; never cut an
 identifier or a migration detail to get there.
 
-Omit the body only when behaviour does not change and the subject names a
-typo, a broken link, formatting, comment wording, a rename with no callers
-changed, or a regenerated artefact. On a code path the omitted body still
+Omit the body and the evidence pair only when behaviour does not change and
+the subject names a typo, a broken link, formatting, comment wording, a
+rename with no callers changed, or a regenerated artefact. A subject that
+already states the gap may omit the body with the evidence pair kept, as
+item 1 says; the checker accepts either shape, and whether a body was owed
+is review's judgement. On a code path the omitted body still
 claims no behaviour change, so the evidence pair covers the existing suite on
 the final contents or declares `Not-verified: behaviour preservation`. A
 dependency bump is never trivial: it takes one line of reason and the
@@ -163,12 +168,12 @@ Breaking-Change: <what breaks>; <what the consumer must do>
   `Not-verified:` line for this tree. A hash names a commit only when that
   commit is an ancestor of this one, so that it stays reachable wherever this
   commit goes; a commit a rewrite replaced is not, and is never named. The
-  outcome is what you observed — counts, the decisive output — never a bare
+  outcome is what you observed, counts or the decisive output, never a bare
   "passed", "ok" or "N/A". A result you did not see yourself says so and names
   what the run checked out: `Verified: final contents; CI run <url>; passed
   (reported)` for a run on this commit's tree; a forge's run on a temporary
-  merge of a pull request tested neither this tree nor the head's, and is
-  named as that merge.
+  merge of a pull request tested a tree that need be neither this one nor the
+  head's, and is named as that merge.
 - **`Not-verified:`** says `not run` when you know the check was not
   performed, and `result unavailable` when it ran and its outcome cannot be
   recovered, or when you cannot tell whether it ran. The reason says what kept
@@ -216,8 +221,13 @@ evidence pair like any other commit that touches code: `Verified: final contents
 the check run on the merge, or, where the branch already contained the target
 so that the merge's tree is its head's, the head's check named as such. A
 merge that lands a pull request may also carry the pull request's URL under
-`Refs:` and the reviewer trailers the forge or the landing writes (the
-grounded-pull-requests skill's `references/landing.md`). A revert body gives
+`Refs:` and the reviewer trailers the landing writes (the
+grounded-pull-requests skill's `references/landing.md`). A merge the forge
+made, whose message no one could write (GitHub's queue, GitLab's train), is
+the exception: it carries the forge's default message, its evidence is the
+forge's run read back at landing, and the checker exempts it by its
+committer. Git's `# Conflicts:` list is deleted from a merge's message, and
+the body says how each conflict was resolved. A revert body gives
 the original hash and subject, why, and
 whether the reversal is complete or partial. For a partial reversal, delete
 Git's "This reverts commit" sentence, which release tooling reads as a
@@ -275,9 +285,10 @@ whatever tool makes it. Installing it is in `references/adoption.md`.
 
 A hook sees only commits made where it is installed, and Git skips it for
 many rewritten commits (a rebase's plain picks among them), so after a
-rewrite check every commit it produced (`--range` over them). Rewrite a message on findings — `git commit --amend` while the
-commit is HEAD, a reword in a rebase below it — check the result, and push
-only once it is clean. A commit already landed on a shared branch is not
+rewrite check every commit it produced (`--range` over them), which also
+flags an autosquash commit the fold left behind. Rewrite a message on
+findings, `git commit --amend` while the commit is HEAD or a reword in a
+rebase below it, check the result, and push only once it is clean. A commit already landed on a shared branch is not
 rewritten: report its findings to the user. One already pushed to a
 pull-request branch is rewritten only when that branch's fix-ups are folded
 before its final approval. If a finding contradicts this skill as written, keep the

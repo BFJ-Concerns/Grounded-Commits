@@ -8,11 +8,10 @@ that changed, a rejected alternative, and an evidence pair naming a gap.
 ```
 config: honour CONFIG_PATH as the config file location
 
-The requirement is that deployments mounting configuration read-only
-under /etc/app can point the service at it. Today the loader reads only
-the XDG default, so those deployments silently ran on built-in defaults
-(reported in issue 214). The reproducer shows the fallback happening
-with no warning logged.
+Deployments mounting configuration read-only under /etc/app need to
+point the service at it (issue 214). The loader reads only the XDG
+default, so those deployments silently ran on built-in defaults; the
+reproducer shows the fallback happening with no warning logged.
 
 The loader now checks CONFIG_PATH before the XDG default; --config still
 wins when both are given, so existing invocations are unaffected. The
@@ -76,7 +75,7 @@ origin.
 Verified: 9f3c1a2b7d4e^, 9f3c1a2b7d4e and final contents;
   go test ./scheduler/... -run TestShutdownOrdering -count=50;
   0 of 50, 7 of 50 and 0 of 50 runs failed respectively
-Verified: final contents; go test ./...; all packages passed
+Verified: final contents; go test ./...; ok, 14 packages
 Not-verified: replay against the production incident data; not run:
   the data is not retained outside the billing environment
 Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
@@ -87,9 +86,10 @@ Refs: https://forge.example/ops/billing/issues/301
 ## Evidence rebound after a rewrite
 
 The branch's fix-ups were folded before its final approval and the suite was
-not run again. The fold changed no file this commit touches, so the check
-still describes the commit's paths and the line says so in words. Naming the
-replaced commit by hash would point at an object nothing keeps reachable.
+not run again. The `Verified:` line keeps the check and names the tree it
+ran on in words, and the gap for the new tree says what the fold did to this
+commit's files. Naming the replaced commit by hash would point at an object
+nothing keeps reachable.
 
 ```
 cli: print the resolved config path with --print-config
@@ -98,11 +98,8 @@ Which file the service loads when several candidates exist is shown
 nowhere (issue 227). --print-config now prints the resolved path on
 its first line, before the values.
 
-Verified: the tree before the fold, which changed no file this commit
-  touches; cargo test -p app-cli; 12 passed
+Verified: the tree before the fold; cargo test -p app-cli; 12 passed
+Not-verified: final contents; not run: the fold changed no file this
+  commit touches and the suite was not re-run
 Refs: https://forge.example/ops/app/issues/227
 ```
-
-Had the fold touched this commit's files, the first part would read
-`the tree before the fold` and a `Not-verified: final contents; not run:
-the suite was not re-run after the fold` line would follow.

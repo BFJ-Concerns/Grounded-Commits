@@ -27,22 +27,29 @@ how branches land.
    codex plugin marketplace add BFJ-Concerns/Grounded-Commits
    codex plugin add grounded-commits@grounded-commits
    ```
-   Then add a line to the repository's guidance for agents saying that its
-   commits and pull requests follow Grounded Commits. The skills also treat a
+   Then start a fresh session, in which the tool lists the two skills, and add
+   a line to the repository's guidance for agents saying that its commits and
+   pull requests follow Grounded Commits. The skills also treat a
    repository with a `.grounded-commits.toml` or the hook as adopting the
    format, and elsewhere apply only when asked.
 2. **Install the hook**, which checks the mechanical rules and tells the agent
    which areas a change could use. In the repository that is adopting the
-   format, with Python 3.8 or newer and Git 2.38 or newer available:
+   format, with Python 3.8 or newer (3.11 or newer to read the optional
+   configuration file) and Git 2.38 or newer available. The hook's path is
+   what `git rev-parse --git-path hooks/commit-msg` prints, which honours
+   `core.hooksPath` and a linked worktree, where `.git` is a file; if a hook
+   already exists there, keep it, save the checker beside it under another
+   name and call it from the existing hook, as
+   [`tooling/README.md`](tooling/README.md) shows. With no hook there:
    ```sh
-   curl -fsSL -o .git/hooks/commit-msg \
+   hook=$(git rev-parse --git-path hooks/commit-msg)
+   curl -fsSL -o "$hook" \
      https://raw.githubusercontent.com/BFJ-Concerns/Grounded-Commits/main/tooling/commit-msg-hook/commit-msg
-   chmod +x .git/hooks/commit-msg
-   python3 .git/hooks/commit-msg --areas
+   chmod +x "$hook"
+   python3 "$hook" --areas
    ```
-   If a `commit-msg` hook already exists, or `core.hooksPath` is set, call this
-   one from it. [`tooling/README.md`](tooling/README.md) covers that, the
-   optional configuration and the `--range` check for CI and landing.
+   [`tooling/README.md`](tooling/README.md) also covers the optional
+   configuration and the `--range` check for CI and landing.
 3. **Optionally, decide how branches land** with
    [`guidance/landing.md`](guidance/landing.md). A checked integration
    candidate is the default; every merge method is covered.
@@ -391,18 +398,19 @@ with the fast-forward-only style; on GitLab the same staging
 under the fast-forward method, or merge trains.
 
 Rebasing before a fast-forward, whether the forge does it or you do, replays
-every commit as a new object: new trees the checks never ran on, signatures
-gone, every evidence line to rebind. Squash does the same in one commit, and is
+every commit as a new object: trees the checks may never have run on,
+signatures gone, every evidence line to rebind. Squash does the same in one commit, and is
 supported where a repository wants one commit per pull request, with the
 landing agent composing its message in the commit format from the branch's
 commits. A forge's merge of a branch that fell behind lands a tree nobody
-checked, because the forge's checks ran on a temporary merge and recorded the
-result against the head's hash; the up-to-date rule and the merge queue exist
-to close that gap.
+checked, because on GitHub the checks ran on a temporary merge and recorded
+the result against the head's hash, and on Forgejo on the head alone; the
+up-to-date rule and the merge queue exist to close that gap.
 
 Whatever the method, four things hold: the reviewed commits land unchanged, or
 under squash the one landed message is composed from them, never taken from
-the forge's default; the landed tree was checked as the object that lands;
+the forge's default; the landed tree was checked before it landed, by the
+landing agent or by the forge's own run read back;
 nothing from the pull-request body enters history; and issues are closed by
 hand after landing. The methods, their costs and the settings for each forge
 are in [`guidance/landing.md`](guidance/landing.md), including pull requests
