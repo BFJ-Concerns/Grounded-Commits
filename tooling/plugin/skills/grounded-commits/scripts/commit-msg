@@ -681,7 +681,7 @@ def check_message(message, paths, config, tracked=(), repo=None, merge=False, pu
         findings.append("no `Verified:` or `Not-verified:` trailer, but the "
                         + ("merge brings in " if merge else "commit changes ") + needing[0]
                         + (f" and {len(needing) - 1} more" if len(needing) > 1 else "")
-                        + " beyond plain documentation" + ("; its tree is new, so its evidence is its own" if merge else "")
+                        + " beyond plain documentation" + ("; its tree is the integration's, so its evidence is its own" if merge else "")
                         + "; `Verified:` records evidence you actually have, and "
                         "`Not-verified: <scope>; not run: <reason>` covers what it does not reach")
     return findings

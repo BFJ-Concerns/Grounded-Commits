@@ -210,8 +210,9 @@ the problem to the user instead.
 ## Native Git messages
 
 Keep Git's generated merge and revert subjects. A merge that resolves nothing
-needs no body, but its tree is new, so it carries the evidence pair for that
-tree like any other commit that touches code: `Verified: final contents` with
+needs no body, but its tree is the integration's own, which no branch
+commit's evidence describes unless it equals the head's, so it carries the
+evidence pair like any other commit that touches code: `Verified: final contents` with
 the check run on the merge, or, where the branch already contained the target
 so that the merge's tree is its head's, the head's check named as such. A
 merge that lands a pull request may also carry the pull request's URL under
