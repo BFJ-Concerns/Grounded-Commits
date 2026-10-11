@@ -357,7 +357,7 @@ def derive_area(path, children):
         segment = dirs[i]
         lower = segment.lower()
         prefix = "/".join(dirs[:i + 1])
-        if lower in COLLECTION_WRAPPERS or segment.startswith("@"):
+        if lower in COLLECTION_WRAPPERS:
             i += 1
             while i < len(dirs) and dirs[i].startswith("@"):
                 i += 1
@@ -540,7 +540,7 @@ def check_cited_hash(cited, repo, anchors, key):
     return []
 
 
-def check_trailer_values(trailers, repo, bang, config, anchors=()):
+def check_trailer_values(trailers, repo, bang, config, anchors=(), native=False):
     findings = []
     has_break = False
     for key, value in trailers:
@@ -581,7 +581,7 @@ def check_trailer_values(trailers, repo, bang, config, anchors=()):
             what, _, action = value.partition(";")
             if not what.strip() or not action.strip():
                 findings.append(f"`Breaking-Change: {value}` needs `<what breaks>; <what the consumer must do>`")
-    if config["header"] == "typed":
+    if config["header"] == "typed" and not native:
         if config["breaking_marker"] == "paragraph":
             if bang:
                 findings.append("this repository's release parser reads the spaced `BREAKING CHANGE:` paragraph, "
@@ -589,6 +589,25 @@ def check_trailer_values(trailers, repo, bang, config, anchors=()):
         elif bool(bang) != has_break:
             findings.append("under the typed header profile `!` before the colon and a `Breaking-Change:` trailer go together")
     return findings
+
+
+def check_breaking_paragraph(groups, trailers, trailer_block, config):
+    """Under the paragraph marker, a break is declared twice: the trailer for
+    this format's readers and a `BREAKING CHANGE:` paragraph, last in the
+    body, for the release parser. Each without the other is a finding."""
+    if config["header"] != "typed" or config["breaking_marker"] != "paragraph":
+        return []
+    has_trailer = any(key.lower() == "breaking-change" for key, _ in trailers)
+    body_groups = groups[:-1] if trailer_block else groups
+    last = body_groups[-1][1][0] if len(body_groups) > 1 else ""
+    has_paragraph = last.startswith("BREAKING CHANGE:")
+    if has_trailer and not has_paragraph:
+        return ["this repository's release parser reads a `BREAKING CHANGE:` paragraph, which is missing; write it "
+                "last in the body, outside the trailer block, beside the `Breaking-Change:` trailer"]
+    if has_paragraph and not has_trailer:
+        return ["a `BREAKING CHANGE:` paragraph without the `Breaking-Change:` trailer; add the trailer, which this "
+                "format's readers extract"]
+    return []
 
 
 def check_introduced_by(value, repo, anchors=()):
@@ -645,7 +664,8 @@ def check_message(message, paths, config, tracked=(), repo=None, merge=False, pu
     trailers = parse_trailers(message)
     trailer_block = bool(trailers)
     findings.extend(check_body(lines, groups, trailer_block))
-    findings.extend(check_trailer_values(trailers, repo, bang, config, anchors))
+    findings.extend(check_trailer_values(trailers, repo, bang, config, anchors, native))
+    findings.extend(check_breaking_paragraph(groups, trailers, trailer_block, config))
     has_body = len(groups) > (1 if trailer_block else 0)
     outcome = subject.split(": ", 1)[1] if ": " in subject else subject
     trivial = (pure_rename and RENAME_SUBJECT_RE.search(outcome.lower())) or TRIVIAL_OUTCOME_RE.match(outcome.lower())

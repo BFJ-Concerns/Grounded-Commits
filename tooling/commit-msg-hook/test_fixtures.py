@@ -52,8 +52,33 @@ Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
 Refs: https://forge.example/ops/billing/issues/301
 """
 
+SCOPED = ["@acme/payments/src/charge.ts", "@acme/web/src/index.ts", "package.json"]
+TYPED_BREAK = ("feat(api): drop the v1 endpoint\n\nThe v1 endpoint is retired.\n\n"
+               "Verified: final contents; go test ./...; ok 12 packages\n"
+               "Breaking-Change: the v1 endpoint is gone; call v2\n")
+TYPED_BREAK_PARAGRAPH = ("feat(api): drop the v1 endpoint\n\nThe v1 endpoint is retired.\n\n"
+                         "BREAKING CHANGE: the v1 endpoint is gone; call v2.\n\n"
+                         "Verified: final contents; go test ./...; ok 12 packages\n"
+                         "Breaking-Change: the v1 endpoint is gone; call v2\n")
+TYPED_REVERT = ('Revert "api: drop the v1 endpoint"\n\nThis reverts commit 1234567890ab ("api: drop the v1\n'
+                'endpoint") in full: clients still call v1.\n\n'
+                "Verified: final contents; go test ./...; ok 12 packages\n"
+                "Breaking-Change: the v1 endpoint returns; clients on v2 are unaffected\n")
+
 CASES = [
     # name, paths, tracked, message, expectation (clean | fragment), config overrides
+    ("a scope directory outside a collection is the area", ["@acme/payments/src/charge.ts"], SCOPED,
+     "acme: charge in minor units\n\nThe requirement is X.\n\nVerified: final contents; npm test; 4 passed\n", "clean", {}),
+    ("a scope directory outside a collection is not skipped", ["@acme/payments/src/charge.ts"], SCOPED,
+     "payments: charge in minor units\n\nThe requirement is X.\n\nVerified: final contents; npm test; 4 passed\n", "area", {}),
+    ("typed: a revert carrying Breaking-Change needs no !", ["internal/api/handler.go"], GO, TYPED_REVERT, "clean", {"header": "typed"}),
+    ("typed, paragraph marker: the trailer without the paragraph is flagged", ["internal/api/handler.go"], GO,
+     TYPED_BREAK, "BREAKING CHANGE", {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: trailer and paragraph together pass", ["internal/api/handler.go"], GO,
+     TYPED_BREAK_PARAGRAPH, "clean", {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: the paragraph without the trailer is flagged", ["internal/api/handler.go"], GO,
+     TYPED_BREAK_PARAGRAPH.replace("Breaking-Change: the v1 endpoint is gone; call v2\n", ""), "Breaking-Change",
+     {"header": "typed", "breaking_marker": "paragraph"}),
     ("readme example parses clean", ["internal/scheduler/worker.go"], GO, SCHEDULER, "clean", {}),
     ("go: area from internal/scheduler", ["internal/scheduler/lease.go"], GO,
      "scheduler: renew leases before they expire\n\nThe requirement is X.\n\nVerified: final contents; go test ./...; ok 12 packages\n", "clean", {}),
