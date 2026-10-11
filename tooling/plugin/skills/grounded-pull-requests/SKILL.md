@@ -1,6 +1,6 @@
 ---
 name: grounded-pull-requests
-description: Write and maintain a pull request's title and body as a review brief in the Grounded Commits convention, where the commits carry the record and the body holds only what no commit can. Use when opening, describing, retitling or updating a pull request, commenting on a push during review, or preparing an approved branch to land, in a repository that has adopted Grounded Commits — its agent guidance says so, or it has a .grounded-commits.toml or the Grounded Commits commit-msg hook; and when asked to write a grounded PR description. The commit messages themselves are grounded-commits.
+description: Write and maintain a pull request's title and body as a review brief in the Grounded Commits convention. Use when opening, describing, retitling or updating a pull request, commenting on a push during review, or preparing an approved branch to land, in a repository that has adopted Grounded Commits, and when asked to write a grounded PR description. The commit messages themselves are grounded-commits.
 ---
 
 # Grounded Pull Requests
@@ -126,27 +126,8 @@ narration, repetition or assurance.
 
 The branch's commits land as the objects they were reviewed as, so the one
 rewrite the branch gets comes before its final approval, not after it. Once
-the reviewers' findings are settled: reword any message the review changed
-and fold the fix-ups into the commits they correct; rebind the evidence of
-every commit the fold produced, not only the reworded ones, since folding
-changes trees (grounded-commits, *After a rewrite*); sign the rewritten
-commits as you make them where the repository keeps author signatures
-(`commit.gpgsign`, or `-S` on the rebase), since a rewrite replaces the
-signed objects, and never make them with plumbing such as `git commit-tree`,
-which signs nothing; push once; and comment with one sentence naming the
-previous head's hash, what the fold changed, and whether the patch is the one
-that was reviewed. `git diff <previous-head> HEAD` printing nothing shows
-that the fold and the rewords changed no content; where it prints something,
-or a message changed, attach `git range-diff <target> <previous-head> HEAD`,
-which shows the change commit by commit, messages included, with
-`--remerge-diff` where the branch keeps merge commits. An attachment sits
-inside a collapsed block, a `<details>` element whose `<summary>` names the
-command, with a blank line after the summary so the fenced block inside
-renders, which GitHub and Forgejo both need. For example:
-
-```
-Head 3e7a1c5 folded its two fix-ups and reworded "stream CSV exports" with the Verified line for the re-run; the patch is unchanged (range-diff attached).
-```
+the reviewers' findings are settled, read `references/before-landing.md` for
+folding the fix-ups, rebinding their evidence, signing, and the push comment.
 
 Approval is then given, or given again, on the folded head, and from that
 point no commit on the branch is rewritten: a late finding is a fix-up commit
@@ -168,49 +149,13 @@ every commit message true of its contents, the forge not showing draft state,
 the required approvals present on the head that will be merged, and the
 required checks passing on the tree that will land, which is the integration
 candidate's, not the head's alone, unless the head already contains the
-target. After landing, read back that the target's tip is the candidate and
-the approved head is its second parent, then close each fully delivered issue
-by hand, in a comment naming the landed commit.
+target. After landing, read back that the approved head is an ancestor of
+the target's tip, its second parent under a merge or the tip itself after a
+fast-forward, or under squash that the landed tree is the checked tree; then
+close each fully delivered issue by hand, in a comment naming the landed
+commit.
 
 ## Examples
 
-One commit, no issue:
-
-```
-Title: export: close the query cursor when the client disconnects
-
-Closes the cursor leak reported after last week's incident.
-
-### Check
-The cursor is closed from the response's context-done hook; check that nothing else in handler.go relies on that hook running exactly once.
-Reproduction against staging not run; the "close the query cursor" commit's trailer says why.
-```
-
-Four commits, one outcome:
-
-```
-export: extract row serialisation from the buffered writer
-export: add a streaming writer behind the existing interface
-export: stream CSV exports instead of buffering them in memory
-docs: describe the X-Row-Count trailer for export clients
-```
-
-```
-Title: export: stream CSV exports instead of buffering them in memory
-
-Exports of over a million rows kill the worker at 2 GB (https://github.com/example/reports/issues/318). This branch streams rows as the cursor advances and moves the row count to a trailer.
-
-### Read
-The first two commits are mechanical and keep the buffered path; the third, "stream CSV exports", is the behaviour change. Start with export/stream.go.
-
-### Check
-Content-Length disappears from export responses; the "stream CSV exports" commit records the break. Do we know of any client that reads it?
-Production-volume replay not run; the "stream CSV exports" commit's trailer says why.
-
-### Try
-Against staging, request /exports/1.4m.csv with curl -N; worker RSS should stay flat where it used to climb to 2 GB.
-
-### Not in this PR
-A progress signal for clients that used Content-Length to show one; no issue exists.
-```
-
+Read `references/examples.md` for a one-commit body with no issue and a
+four-commit series with one outcome.

@@ -4,7 +4,7 @@ Format version 0.3.3. This part is optional: the commit and pull-request convent
 
 ## What landing has to preserve
 
-1. **The commits.** The reviewed commits land as the objects they were reviewed as: same hashes, same trees, same messages, same signatures. A method that replays them as new objects gives every one a new tree, so every `Verified: final contents` on the branch describes a tree that was never tested and every author signature is gone; the branch then owes a re-run or a rebinding per commit (`commit-messages.md`, *After a rewrite*) and a re-signing, and the reviewers approved objects that no longer exist.
+1. **The commits.** The reviewed commits land as the objects they were reviewed as: same hashes, same trees, same messages, same signatures. A method that replays them as new objects gives every one a new tree, so every `Verified: final contents` on the branch describes a tree that was never tested and every author signature is gone; the branch then owes a re-run or a rebinding per commit (the commit-message guidance, *After a rewrite*) and a re-signing, and the reviewers approved objects that no longer exist.
 2. **The landed tree is checked.** Integrating a branch with a target that has moved produces a tree no branch commit has. That tree is checked before it lands, as the object that lands, and the commit that carries it says so in its own `Verified:` line.
 3. **Nothing from the pull-request body enters history.** The body is a review brief. The merge commit carries Git's subject, its evidence pair, the pull request's URL under `Refs:` and the reviewer trailers the forge or the landing writes, and a body only where it resolved something.
 4. **Issues close by hand after landing**, never by keyword.
@@ -19,7 +19,7 @@ A stacked pull request lands the same way: once its parent has landed, the child
 
 ## Why not the other methods
 
-- **Rebase, by the forge or by hand, then fast-forward.** Replays every commit: new hashes and trees, author signatures dropped (a forge cannot sign with the author's key; a local rebase re-signs only with signing on, and plumbing such as `git commit-tree` never signs), and every `Verified: final contents` rebound. Reviewers approved commits that are no longer what lands, and a re-check of the tip covers the tip alone. Linear history is all it buys.
+- **Rebase, by the forge or by hand, then fast-forward.** Replays every commit: new hashes and trees, author signatures dropped (a forge cannot sign with the author's key; a local rebase re-signs only with signing on, and plumbing such as `git commit-tree` ignores `commit.gpgsign` and signs only when passed `-S`), and every `Verified: final contents` rebound. Reviewers approved commits that are no longer what lands, and a re-check of the tip covers the tip alone. Linear history is all it buys.
 - **Squash.** One new commit; every branch commit's message, evidence and signature is gone, and the trailer blocks of all but the last are buried in a body Git does not read as trailers. Supported where a repository wants one commit per pull request: the landing agent composes the message in the commit format from the branch's commits, with the evidence rebound to the landed tree, and supplies it explicitly, never the forge's default and never the pull-request body.
 - **A merge the forge makes of a stale branch.** The forge's checks ran on a temporary merge of the head into the target as it stood when the run started, and recorded the result against the head's hash. A target that moves afterwards leaves that result green and re-runs nothing, so the merge the forge then makes has a tree nobody checked. That gap is why forges offer an up-to-date rule and a merge queue; without one of them it is open.
 
@@ -33,7 +33,7 @@ A stacked pull request lands the same way: once its parent has landed, the child
 | **GitLab** | Merge method *fast-forward*, automatic rebase off, squash "Do not allow"; or, on Premium or Ultimate with a busy target, merge commits with merged results pipelines and merge trains. | Fast-forward: stage `C` on the source branch as on Forgejo, let the pipeline run on it, land with `PUT …/merge` and `sha: <C>`; GitLab refuses unless `C` contains the target's tip. Trains: add with `auto_merge`; the landed merge is a fresh object whose tree equals the train's checked tree because the train serialises the target. Never the interface's rebase, which runs server-side and drops signatures. |
 | **Plain Git**, no forge gate | — | On the target's tip, `git merge --no-ff <H>`, check, write the message, push; a refused push means the target moved, so rebuild. |
 
-Enable only the method your repository uses, so an agent cannot pick another. Whenever a forge makes the landing commit, read its message back (`git show -s --format=%B`, `git interpret-trailers --parse --no-divider`) and confirm the landed tip's second parent is the approved head.
+Enable only the method your repository uses, so an agent cannot pick another. Whenever a forge makes the landing commit, read its message back (`git show -s --format=%B`, `git interpret-trailers --parse --no-divider`) and confirm the approved head is an ancestor of the landed tip: its second parent under a merge, the tip itself after a fast-forward; under squash, that the landed tree is the checked tree.
 
 ## Pull requests from forks
 

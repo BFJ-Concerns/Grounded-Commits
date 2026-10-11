@@ -1,4 +1,36 @@
-# Grounded Commits: further examples
+# Grounded Commits: examples
+
+## A full message
+
+A request backed by an issue, the reproducer's observation, the behaviour
+that changed, a rejected alternative, and an evidence pair naming a gap.
+
+```
+config: honour CONFIG_PATH as the config file location
+
+The requirement is that deployments mounting configuration read-only
+under /etc/app can point the service at it. Today the loader reads only
+the XDG default, so those deployments silently ran on built-in defaults
+(reported in issue 214). The reproducer shows the fallback happening
+with no warning logged.
+
+The loader now checks CONFIG_PATH before the XDG default; --config still
+wins when both are given, so existing invocations are unaffected. The
+CLI help text and the operations guide state the precedence.
+
+Considered and rejected: a config.d directory search. It would cover the
+read-only case too, but its ordering rules would need their own
+documentation and tests for a problem one variable solves.
+
+Verified: final contents; cargo test -p app-config (precedence cases
+  added in config/tests/precedence.rs); 9 passed
+Verified: final contents; manual run with CONFIG_PATH set to a file
+  outside ~/.config and no ~/.config present; --print-config showed
+  the file's values
+Not-verified: Windows path handling; not run: no Windows runner was
+  available
+Refs: https://forge.example/ops/app/issues/214
+```
 
 ## A trivial change on a documentation path
 
@@ -23,9 +55,8 @@ Verified: final contents; cargo fmt --check and cargo test -p scheduler;
 
 ## A defect repair carrying `Introduced-by:`
 
-The body names the symptom and how it showed, and states the
-present-at-commit, absent-at-parent result that substantiates
-`Introduced-by:`.
+The body states the symptom and how it showed, with the present-at-commit,
+absent-at-parent result that substantiates `Introduced-by:`.
 
 ```
 scheduler: stop running a job twice when a worker shuts down

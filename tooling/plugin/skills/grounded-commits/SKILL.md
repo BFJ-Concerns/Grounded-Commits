@@ -1,6 +1,6 @@
 ---
 name: grounded-commits
-description: Write and check commit messages in the Grounded Commits format. Use when committing, amending, rebasing, squashing or cherry-picking in a repository that has adopted the format — its agent guidance says so, or it has a .grounded-commits.toml or the Grounded Commits commit-msg hook; when asked to write a grounded commit or check a commit message against the format; and when adopting the format in a repository. Other repositories keep their own commit style. The pull-request title and body that go with the format are grounded-pull-requests.
+description: Write and check commit messages in the Grounded Commits format. Use when committing, amending, rebasing, squashing or cherry-picking in a repository that has adopted the format, when asked to write a grounded commit or to check a commit message against the format, and when adopting the format in a repository; other repositories keep their own commit style. The pull-request title and body that go with the format are grounded-pull-requests.
 allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/commit-msg*)
 ---
 
@@ -32,28 +32,9 @@ Elsewhere, write a grounded message only when asked to.
 
 ## Adopting the format
 
-To adopt the format in a repository, add a line to its agent guidance saying
-that commit messages follow Grounded Commits, and install the checker as its
-`commit-msg` hook (*Checking the message*, below). A repository the defaults
-do not fit adds a `.grounded-commits.toml` at its root, which the checker
-reads:
-
-- `forge` (`github`, `gitlab`, `forgejo` or `any`) narrows the issue-closing
-  keywords rejected;
-- `header = "typed"` selects the typed header profile below;
-- `areas` lists always-valid areas, and `[area_map]` maps path prefixes to
-  areas, longest match winning;
-- `contract_docs` names documentation that states a contract and so needs
-  evidence;
-- `issue_keys` names a tracker's keys (`["PROJ"]`), without which the checker
-  reads a token like `PROJ-42` as an identifier such as `UTF-8` rather than an
-  issue reference.
-
-Keep the file to what the repository actually needs. The checker reads only
-this file, so a path map or typed profile recorded only in the repository's
-guidance governs over the checker's defaults: where the two disagree, follow
-the guidance, report the checker's finding as a configuration gap, and
-suggest moving the setting into `.grounded-commits.toml`.
+When adopting the format in a repository, configuring the checker
+(`.grounded-commits.toml`) or installing its hook, read
+`references/adoption.md`.
 
 ## Subject: `<area>: <outcome>`
 
@@ -218,28 +199,13 @@ Breaking-Change: <what breaks>; <what the consumer must do>
 ## After a rewrite
 
 Rebase, cherry-pick, squash and amend reuse message text in a new commit, and
-whoever makes the new commit owns its evidence. Keep `Verified: final
-contents` only when you re-ran the check on the new commit, or its tree is the
-tree that was tested — `git rev-parse <tested>^{tree} <new>^{tree}` prints the
-same hash twice. A message-only amend keeps the tree; a replay onto a moved
-base usually changes it, even when it applied cleanly, and a re-run on the tip
-covers the tip alone. Otherwise rebind before you create the new commit, in
-one of two ways: re-run the check on the new tree; or, where the rewrite
-changed no file this commit touches (`git diff <tested> <new> -- <its paths>`
-prints nothing), replace `final contents` with "the tree before the rewrite,
-which changed no file this commit touches" and keep the check and its
-outcome. Where neither holds, replace `final contents` with "the tree before
-the rewrite" and add a `Not-verified:` for the new tree scoped to the claim
-(`behaviour preservation`, `reproduction`, `performance effect`, else `final
-contents`). Never name the replaced commit by hash: nothing keeps it
-reachable, and a reader who cannot open it learns only that the published
-tree was not tested. Wrap the rebound lines like any other. Check every
-commit a rewrite produced, not only the tip; where the branch will land by
-squash, the rebinding goes into the composed message, since the branch's own
-commits do not land. Rewrite only commits that have not landed on a shared
-branch, and a pull-request branch only before its final approval, when its
-fix-ups are folded; an approved head and a landed commit are never rewritten —
-report the problem to the user instead.
+whoever makes the new commit owns its evidence: before one, read
+`references/rewrites.md` for what `Verified: final contents` may keep, how to
+rebind the rest in words, and how to check every commit the rewrite produced.
+Rewrite only commits that have not landed on a shared branch, and a
+pull-request branch only before its final approval, when its fix-ups are
+folded; an approved head and a landed commit are never rewritten — report
+the problem to the user instead.
 
 ## Native Git messages
 
@@ -304,14 +270,7 @@ and commit again. It sees only the staged changes, so after
 it is not installed, run `--rev HEAD` yourself after each commit and before
 pushing — so never chain a push onto the commit command — and tell the user
 once that installing the hook would check every commit in the repository
-whatever tool makes it. Install it when the user agrees or is adopting the
-format. The hook's path is what `git rev-parse --git-path hooks/commit-msg`
-prints, which honours `core.hooksPath`. With no
-file there, copy `scripts/commit-msg` to that path and make it executable.
-Where a hook already exists there, keep it: copy the checker beside it under
-another name and add a line to the existing hook that runs `python3
-<checker> "$1"` and exits on its failure, so either hook can reject the
-commit.
+whatever tool makes it. Installing it is in `references/adoption.md`.
 
 A hook sees only commits made where it is installed, and Git skips it for
 many rewritten commits (a rebase's plain picks among them), so after a
@@ -326,34 +285,8 @@ the hook. A clean
 check proves the shape only; whether the problem, reasons and claims are true
 is yours to get right.
 
-## Example
+## Examples
 
-```
-config: honour CONFIG_PATH as the config file location
-
-The requirement is that deployments mounting configuration read-only
-under /etc/app can point the service at it. Today the loader reads only
-the XDG default, so those deployments silently ran on built-in defaults
-(reported in issue 214). The reproducer shows the fallback happening
-with no warning logged.
-
-The loader now checks CONFIG_PATH before the XDG default; --config still
-wins when both are given, so existing invocations are unaffected. The
-CLI help text and the operations guide state the precedence.
-
-Considered and rejected: a config.d directory search. It would cover the
-read-only case too, but its ordering rules would need their own
-documentation and tests for a problem one variable solves.
-
-Verified: final contents; cargo test -p app-config (precedence cases
-  added in config/tests/precedence.rs); 9 passed
-Verified: final contents; manual run with CONFIG_PATH set to a file
-  outside ~/.config and no ~/.config present; --print-config showed
-  the file's values
-Not-verified: Windows path handling; not run: no Windows runner was
-  available
-Refs: https://forge.example/ops/app/issues/214
-```
-
-For a trivial change, a defect repair carrying `Introduced-by:`, or evidence
-rebound after a rewrite, read `references/examples.md`.
+For a worked message, a trivial change, a defect repair carrying
+`Introduced-by:`, or evidence rebound after a rewrite, read
+`references/examples.md`.
