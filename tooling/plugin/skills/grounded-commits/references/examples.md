@@ -53,22 +53,25 @@ Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
 Refs: https://forge.example/ops/billing/issues/301
 ```
 
-## Evidence rebound after a rebase
+## Evidence rebound after a rewrite
 
-The branch was rebased onto main after the check and the suite was not run
-again, so `Verified:` names the commit that was tested and the new tree is
-declared unverified.
+The branch's fix-ups were folded before its final approval and the suite was
+not run again. The fold changed no file this commit touches, so the check
+still describes the commit's paths and the line says so in words. Naming the
+replaced commit by hash would point at an object nothing keeps reachable.
 
 ```
 cli: print the resolved config path with --print-config
 
-Operators asked (issue 227) which file the service actually loaded
-when several candidates exist. --print-config now prints the resolved
-path on its first line, before the values.
+Which file the service loads when several candidates exist is shown
+nowhere (issue 227). --print-config now prints the resolved path on
+its first line, before the values.
 
-Verified: 7c0d2e5a91b4 (the tested commit before rebase onto main);
-  cargo test -p app-cli; 12 passed
-Not-verified: final contents; not run: the branch was rebased onto
-  main after the check and the suite was not re-run
+Verified: the tree before the fold, which changed no file this commit
+  touches; cargo test -p app-cli; 12 passed
 Refs: https://forge.example/ops/app/issues/227
 ```
+
+Had the fold touched this commit's files, the first part would read
+`the tree before the fold` and a `Not-verified: final contents; not run:
+the suite was not re-run after the fold` line would follow.

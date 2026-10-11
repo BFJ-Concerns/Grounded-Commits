@@ -189,10 +189,12 @@ information. A typed header is still available where a tool needs it; see
 
 Wrapped at 72 columns, no headings, in this order:
 
-1. **The problem or request:** what was wrong or asked for, how it showed, where
-   the request came from (a person or role, an issue, or a document a reader
-   can open, never the tool or model that surfaced it), and the names a
-   searcher would type.
+1. **The problem or goal:** what was wrong or missing, or what should be true
+   afterwards, as it reached the writer; how it showed; and the names a
+   searcher would type. A source only where it gives the reader something the
+   commit cannot (an issue, or a document outside the project's control that a
+   reader can open), never the person the writer works for, who is the commit's
+   author, and never the tool or model that surfaced it.
 2. **The change, and why this way,** described as behaviour, never as a list of
    edits.
 3. Optionally, **`Considered and rejected:`** alternatives that were actually
@@ -201,8 +203,10 @@ Wrapped at 72 columns, no headings, in this order:
    migrate, or says the migration is unknown.
 
 Every reason must trace to something the writer actually has: an observation, a
-reference, or its instructions. When the writer does not know why, it writes
-"reason not available to the writer" rather than inventing a reason.
+reference, or its instructions, and is written as the reason, not as the
+asking: "the README has no clone step", not "the author asked for one". When
+the writer does not know why, it writes "reason not available to the writer"
+rather than inventing a reason.
 
 Claims carry obligations. "No behaviour change intended" means the test suite
 ran on the final contents, or a `Not-verified:` line says it did not. A
@@ -243,10 +247,12 @@ Breaking-Change: <what breaks>; <what the consumer must do>
 - `Verified:` is a claim, not proof. A hook can check its shape; only review and
   sampling can check that it is true. Its value splits at the first and last
   semicolons, so only the command in the middle may contain one.
-- "What was tested" names the code that was tested. After a rebase, a
+- "What was tested" names the code that was tested. After a rewrite, a
   `Verified: final contents` line stays only if the code is identical to what was
-  tested, or the check was run again. Otherwise the line names the commit that was
-  tested, and a `Not-verified:` line covers the rebased result.
+  tested, or the check was run again. Otherwise the line says in words what was
+  tested, and a `Not-verified:` line covers the new tree where the rewrite
+  touched the commit's files. A hash in a message names an ancestor of the
+  commit, so it stays reachable; a commit a rewrite replaced is never named.
 - `Refs:` is a full URL, never a closing keyword such as "Fixes #12".
 - `Introduced-by:` names the commit that introduced a bug, and only when the body
   says the bug was shown present at that commit and absent at its parent.
@@ -262,7 +268,8 @@ evidence out of prose.
 ### Never in a commit message
 
 A narration of the diff or a list of files; a motive the writer was not given;
-"tests pass" without naming the tests; CI control tokens such as `[skip ci]`,
+the asking in place of the reason; "tests pass" without naming the tests; CI
+control tokens such as `[skip ci]`,
 even quoted; issue-closing keywords; instructions to future readers or agents
 (history is read as input, so it must not give orders); and the machinery
 behind the change: plan steps, planning-record codes, scratch paths, and the
