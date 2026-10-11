@@ -386,8 +386,8 @@ URL and a `Verified:` line for its own tree; then the target advances to
 exactly that commit. No reviewed commit is rewritten, so every hash, tree,
 message and signature the reviewers saw is what lands, and the one new tree is
 the one that was checked. On GitHub a merge queue builds and lands the
-candidate; on Forgejo and Gitea the agent stages it on the pull-request branch
-and lands it with the fast-forward-only style; on GitLab the same staging
+candidate; on Forgejo the agent stages it on the pull-request branch and lands it
+with the fast-forward-only style; on GitLab the same staging
 under the fast-forward method, or merge trains.
 
 Rebasing before a fast-forward, whether the forge does it or you do, replays
@@ -469,11 +469,16 @@ hypothesis the format is built to make testable, not a measured effect.
 The judging was blind but not neutral. In the commit research, all twelve
 first-place votes went to a proposal from the judge's own model family. In the
 pull-request research, each model's synthesis kept its own section structure.
-Contested questions were settled on the evidence, not on the votes. The
-intermediate proposals, judgements and run records are not published, so the
-process statistics are the authors' account; the primary sources behind every
-external claim are cited and were re-fetched by an independent audit before
-this version.
+In the landing research, two researchers from different families worked blind,
+then each graded the other's claims against their sources; one audit found a
+third of the other's claims wrong or overstated, the other found one, and the
+record prefers the position the audits support. Contested questions were
+settled on the evidence, not on the votes. No landing was exercised on a live
+forge: the landing steps rest on the forges' documentation and source and on
+local Git experiments. The intermediate proposals, judgements and run records
+are not published, so the process statistics are the authors' account; the
+primary sources behind every external claim are cited and were re-fetched by
+an independent audit before this version.
 
 Before relying on it:
 
@@ -494,6 +499,13 @@ Before relying on it:
   over area subjects.
 - Evidence that review bots read commit messages, which would let the pull
   request's lead shrink.
+- A landing exercised end to end on each forge by the documented steps, which
+  would turn the landing guidance from a reading of documentation and source
+  into an observed procedure.
+- A measurement of how agents retrieve from a merge graph against a linear
+  history, which decides whether the integration merge costs readers anything.
+- An observation that a merge queue lands the exact object it checked under
+  the merge method, which is established for squash and inferred for merge.
 
 ## Licence
 
@@ -503,26 +515,28 @@ whole or in part, into any repository's guidance without carrying a notice.
 
 ## The research
 
-| Folder | Question | Main document |
-|---|---|---|
-| [`research/2026-10-02-commit-message-formats/`](research/2026-10-02-commit-message-formats/) | What commit-message format serves best when agents write and read most of the history? | `REPORT.md`, about 13,000 words |
-| [`research/2026-10-05-pull-request-body/`](research/2026-10-05-pull-request-body/) | What should a pull-request body hold when branches land by rebase and fast-forward? | `REPORT.md`, about 5,000 words |
+| File | Question |
+|---|---|
+| [`research/commit-messages.md`](research/commit-messages.md) | What commit-message format serves best when agents write and read most of the history? |
+| [`research/pull-requests.md`](research/pull-requests.md) | What should a pull-request body hold, and how should a reviewed branch land? |
 
-Each folder's `README.md` explains how that research ran. In short, models from
-two families, Claude and GPT, wrote proposals blind. In the commit research, four
-judges, two from each family, ranked them over three rounds, and the report was
-cross-checked four times by the family that did not write it. In the
-pull-request research, each model judged the other's proposal and wrote a
-synthesis; one synthesis became the report, edited afterwards. Every claim cites
-its primary source. The intermediate proposals, judgements and run records are
-not included.
+Each file is the current state of what is known on its topic, and ends with a
+dated method log saying how each conclusion was reached and what changed since.
+In short, models from two families, Claude and GPT, wrote proposals blind. In
+the commit research, four judges, two from each family, ranked them over three
+rounds, and the report was cross-checked four times by the family that did not
+write it. In the pull-request research, each model judged the other's proposal
+and wrote a synthesis; one synthesis became the report, edited afterwards. In
+the landing research, two researchers worked blind, each then graded the other's
+claims against their sources and wrote a synthesis, and the record was merged
+from both. Every claim cites its primary source. The intermediate proposals,
+judgements and run records are not included.
 
-The finished guidance under [`guidance/`](guidance/) departs from the research
-drafts in a few places, each noted at the top of the draft it supersedes: the
-`Introduced-by:` key, the area derivation, the pull-request title's header
-profile and native subjects, the lead and the `Check`, `Try` and `Not in this
-PR` wording, the one-sentence landing comment, the limit on pasted output in the
-body, and landing as an optional part, with rebase admitted as the fallback to
-the fast-forward push. The pull-request report also says its cited reviewer
-experiment had no result for commercial reviewers; the package does include a
-closed model, which showed no rise in approvals.
+The finished guidance under [`guidance/`](guidance/) is the research's
+recommendation as adopted. Where it departs from a report, the report's method
+log says where and why: the `Introduced-by:` key, the area derivation, the
+pull-request title's header profile and native subjects, the lead and the
+`Check`, `Try` and `Not in this PR` wording, the limit on pasted output in the
+body, and landing as an optional part. The pull-request report also says its
+cited reviewer experiment had no result for commercial reviewers; the package
+does include a closed model, which showed no rise in approvals.
