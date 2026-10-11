@@ -57,6 +57,9 @@
   known and ending in a dated method log; the landing research of
   11 October 2026 is merged into the pull-request record. The dated
   directories and the guidance drafts are gone.
+- The guidance files are MIT like the rest of the repository; the
+  README no longer dedicates them to the public domain under CC0 1.0,
+  a dedication whose text the repository never carried.
 
 ## 0.3.3 — 2026-10-10
 

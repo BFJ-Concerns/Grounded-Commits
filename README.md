@@ -517,9 +517,7 @@ Before relying on it:
 
 ## Licence
 
-MIT, for the repository as a whole. The three files under `guidance/` are in
-addition dedicated to the public domain under CC0 1.0, so you can paste them,
-whole or in part, into any repository's guidance without carrying a notice.
+MIT, for the repository as a whole, the guidance files included.
 
 ## The research
 
