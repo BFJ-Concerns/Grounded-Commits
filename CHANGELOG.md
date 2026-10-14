@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The research records are replaced by two background notes,
+  `background/commit-messages.md` and `background/pull-requests.md`, which
+  keep the evidence and its sources and drop the account of how the
+  records were produced. They no longer restate the guidance, so they no
+  longer disagree with it. The README links each study it cites directly.
+
 ## 0.4.0 — 2026-10-11
 
 - A reviewed branch lands as a checked integration candidate: a merge
