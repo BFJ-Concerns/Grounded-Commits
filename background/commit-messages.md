@@ -30,15 +30,18 @@ in a student study that bundled labels, obligation and interface
 messages lacked the what or the why
 ([source](https://arxiv.org/html/2202.02974)).
 
-The provenance rules rest on one observation, not an experiment. A history of
-144 agent-written commits, read in full before it was first published, showed
-three things. Five bodies opened "The author asked for" or similar, where the
-requester was the committer. 44 opened "A reviewer reported", so a phrase
-meant to mark footing had become house style. And 21 carried a `Verified:`
-line naming a pre-rebase commit beside `Not-verified: final contents`. None
-of the 21 tested revisions was reachable from the branch to be published:
-four survived only under a pull-request ref, the rest only as unreachable
-objects in one clone. Mechanism: in a single-maintainer repository the
+The provenance rules rest on one observation, not an experiment. The full
+history of one of the author's own repositories, 144 agent-written commits,
+was read on 11 October 2026 before it was published; the messages were
+reworded before publication, so the published history does not show what
+was observed. The reading showed three things. Five bodies opened "The
+author asked for" or similar, where the requester was the committer. 44
+opened "A reviewer reported", so a phrase meant to mark footing had become
+house style. And 21 carried a `Verified:` line naming a pre-rebase commit
+beside `Not-verified: final contents`. None of the 21 tested revisions was
+reachable from the branch to be published: four survived only under a
+pull-request ref, the rest only as unreachable objects in one clone.
+Mechanism: in a single-maintainer repository the
 requester is the committer, so "the author asked" adds nothing the author
 line lacks, and once published it states the motive to the audience it
 concerns. A phrase repeated at the start of a third of the bodies stops

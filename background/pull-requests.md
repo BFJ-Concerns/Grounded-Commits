@@ -1,11 +1,14 @@
 # Pull requests and landing: the evidence behind the conventions
 
-The published studies, documented forge behaviour, forge source and local Git
-experiments behind [`guidance/pull-requests.md`](../guidance/pull-requests.md)
+The published studies, documented forge behaviour, forge source and Git
+behaviour behind [`guidance/pull-requests.md`](../guidance/pull-requests.md)
 and [`guidance/landing.md`](../guidance/landing.md), which specify the
 conventions; this file does not repeat them. Part one covers the pull-request
-body, part two how a reviewed branch lands. Each part ends with its sources
-and the dates they were read. A claim with no citation is labelled *opinion*.
+body, with links to the studies and documentation it rests on. Part two
+covers how a reviewed branch lands and cites by label, with the sources
+listed at its end, because much of it is tables and some of what it rests on
+is not a web page: commits observed through a forge's API. Sources were read
+between 3 and 11 October 2026.
 
 ## Part one: the pull-request body
 
@@ -13,62 +16,167 @@ The target forge is GitHub; Forgejo's behaviour is noted where it differs.
 
 ### Why the body is a short review brief
 
-No controlled comparison of pull-request body formats was found for any reader; the search was bounded. What follows separates measurement, documentation and judgement.
+No controlled comparison of pull-request body formats was found for any
+reader; the search was bounded. What follows separates what was measured,
+what is documented and what is judgement.
 
 #### The human reviewer
 
-Reviewers start from the description: ten experienced developers performing 25 reviews explicitly used the title and description in 21 (Wurzel Gonçalves et al., measurement, read 5 October 2026), which shows use, not that a longer description improves detection. Nine of ten interviewees in an earlier study wanted motivation alongside what changed (Ram et al., measurement, read 3 October 2026). Google's guidance asks a description for the problem, the approach and its shortcomings (project policy, read 5 October 2026); it assumes the description enters history, so here that argument transfers to the commits. What a reviewer cannot get from commits or diff is where the author's own doubt lies and what they could not check; that is `Check`. Meta's finding that a test plan is "a communication channel between the author and the reviewers, not a proof that the changes were tested" (Chen et al., read 3 October 2026) is why `Check` asks rather than asserts, and why no section is named for evidence.
+Reviewers start from the description: ten experienced developers performing
+25 reviews explicitly used the title and description in 21
+([Wurzel Gonçalves et al.](https://arxiv.org/html/2503.21455v1)), which
+shows use, not that a longer description improves detection. Nine of ten
+interviewees in an earlier study wanted motivation alongside what changed
+([Ram et al.](https://anandsaw.github.io/publications/fse2018.pdf)).
+[Google's guidance](https://google.github.io/eng-practices/review/developer/cl-descriptions.html)
+asks a description for the problem, the approach and its shortcomings; it
+assumes the description enters history, so here that argument transfers to
+the commits. What a reviewer cannot get from commits or diff is where the
+author's own doubt lies and what they could not check; that is `Check`.
+Meta's finding that a test plan is "a communication channel between the
+author and the reviewers, not a proof that the changes were tested"
+([Chen et al.](https://research.facebook.com/file/596469272122518/Leveraging-Test-Plan-Quality-to-Improve-Code-Review-Efficacy.pdf))
+is why `Check` asks rather than asserts, and why no section is named for
+evidence.
 
-Pointing at commits costs a click; a one-line lead and a one-line gap statement keep the reader from opening every message to find the scope or the untested case. Whether this saves review time overall is unmeasured.
+Pointing at commits costs a click; a one-line lead and a one-line gap
+statement keep the reader from opening every message to find the scope or
+the untested case. Whether this saves review time overall is unmeasured.
 
 #### The automated reviewer
 
-The description is a demonstrated input. Adding it to a diff hunk raised four closed models' quality-estimation F1 from 36.08 to 62.12 in ContextCRBench, and adding the issue took it to 64.74 (measurement, read 5 October 2026; a benchmark, not a comparison of body formats). CodeRabbit extracts objectives from the description and related issues; Copilot uses identifiers in the description to decide when to retrieve external context (vendor documentation, read 5 October 2026). Hence the lead's one-sentence objective and neutral issue link: cheap, and demonstrably consumed. Whether any of these products reads commit messages is undocumented, so the lead carries the objective even though a commit states it; this and the gap line are the two deliberate overlaps, each bounded to a sentence.
+The description is a demonstrated input. Adding it to a diff hunk raised
+four closed models' quality-estimation F1 from 36.08 to 62.12 in
+[ContextCRBench](https://arxiv.org/html/2511.07017v2), and adding the issue
+took it to 64.74 (Table 5; a benchmark, not a comparison of body formats).
+CodeRabbit extracts objectives from the description and related issues
+([configuration](https://docs.coderabbit.ai/reference/configuration),
+[blog](https://www.coderabbit.ai/blog/the-art-and-science-of-context-engineering));
+[Copilot](https://docs.github.com/en/copilot/concepts/agents/code-review)
+uses identifiers in the description to decide when to retrieve external
+context. Hence the lead's one-sentence objective and neutral issue link:
+cheap, and demonstrably consumed. Whether any of these products reads commit
+messages is undocumented, so the lead carries the objective even though a
+commit states it; this and the gap line are the two deliberate overlaps,
+each bounded to a sentence.
 
-Wording moves weaker models: the replication package shows unsupported assurances raising approvals of known-bad patches by 15 to 19 points on two open-weight models; for the one closed model in the package, Claude Sonnet through its API, approvals did not rise, so the effect is established for the open-weight reviewers and not transferred to commercial ones (package read 11 October 2026). A body with no assurance and no instruction aimed at the reviewer removes that lever. Whether `Check` directs a bot's attention usefully is unmeasured.
+Wording moves weaker models: a
+[replication package](https://github.com/karlita604/AI-Reviewer-Replication-Package)
+shows unsupported assurances raising approvals of known-bad patches by 15 to
+19 points on two open-weight models; for the one closed model in the
+package, Claude Sonnet through its API, approvals did not rise, so the
+effect is established for the open-weight reviewers and not transferred to
+commercial ones. A body with no assurance and no instruction aimed at the
+reviewer removes that lever. Whether `Check` directs a bot's attention
+usefully is unmeasured.
 
 #### The agent author
 
-An agent at pull-request time holds the request, what it observed, what it changed and what it ran; it does not thereby know that everything requested happened or that a check passed. Its known failures are boilerplate from a harness template (the shipped Claude Code default is a `## Summary` / `## Test plan` body with checklist placeholders, read on 3 October 2026), claimed work that was not done (45.4% of the 432 misaligned descriptions Gong et al. classified claimed unimplemented changes; measurement, read 5 October 2026; the inconsistent subset, not all agent pull requests), and length. Headings stay because templates are not worthless: Li et al. found both contributors and maintainers rated them useful while complaining of excessive and irrelevant fields (measurement, read 5 October 2026).
+An agent at pull-request time holds the request, what it observed, what it
+changed and what it ran; it does not thereby know that everything requested
+happened or that a check passed. Its known failures are boilerplate from a
+harness template (the
+[Claude Code package](https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.288.tgz)
+ships a `## Summary` / `## Test plan` body with checklist placeholders),
+claimed work that was not done (45.4% of the 432 misaligned descriptions
+[Gong et al.](https://arxiv.org/html/2601.04886v2) classified claimed
+unimplemented changes; the inconsistent subset, not all agent pull
+requests), and length (a median of 355 words against 56 for people's, in
+[Watanabe et al.](https://arxiv.org/html/2509.14745v3)). Headings stay
+because templates are not worthless:
+[Li et al.](https://whystar.github.io/res/paper/template-TSE2022.pdf) found
+both contributors and maintainers rated them useful while complaining of
+excessive and irrelevant fields.
 
-The format steers without tooling by making every section a question whose honest answer may be "nothing", with omission the rule and padding the defect. No section's name invites results, and results are banned, so the invented test plan has nowhere to go; the gap line gives honest absence a place; `Not in this PR` gives the exit that phantom claims lack; the budgets and the narration ban give a reviewer a one-glance rejection criterion; the three-line shape for one commit removes the blank page templates fill. Repository guidance must say this format replaces the harness default. Cost: one read of a short body before the diff, which the reviewer does anyway.
+The format steers without tooling by making every section a question whose
+honest answer may be "nothing", with omission the rule and padding the
+defect. No section's name invites results, and results are banned, so the
+invented test plan has nowhere to go; the gap line gives honest absence a
+place; `Not in this PR` gives the exit that phantom claims lack; the budgets
+and the narration ban give a reviewer a one-glance rejection criterion; the
+three-line shape for one commit removes the blank page templates fill.
+Repository guidance must say this format replaces the harness default.
+Cost: one read of a short body before the diff, which the reviewer does
+anyway.
 
 #### The later reader
 
-The later reader with a clone gets everything from the commits, by design. A reader on the forge finds the final body, true of the head that landed, a comment per push, threads holding the dispositions, and the forge's record of approvals and checks. The one durable thing review produces, a reason for declining a design finding, is folded into a commit's `Considered and rejected:` before approval. No synthetic series commit, final-commit essay or body export is added.
+The later reader with a clone gets everything from the commits, by design.
+A reader on the forge finds the final body, true of the head that landed, a
+comment per push, threads holding the dispositions, and the forge's record
+of approvals and checks. The one durable thing review produces, a reason
+for declining a design finding, is folded into a commit's `Considered and
+rejected:` before approval. No synthetic series commit, final-commit essay
+or body export is added.
 
 ### What was rejected
 
-**A body that copies the commit message.** A design made for squash and merge-commit landing put a mechanically derived copy of the head commit's message at the top of the body, checked byte for byte by a lint, with review material optional below a `---` rule, marker comments around the text meant to land, and a read-back of the landed message. Every part of it controlled what entered history, and under a landing whose only new object is an integration commit with a composed trailer block (Part two) the body controls nothing; what remained was a copy of text the reviewer can read in the commit list, plus tooling to keep the copy honest. Read-back's purpose, confirming that what lands is what was reviewed, survives as the tree statement in the fold comment and the read-back of the landed candidate in Part two.
+**A body that copies the commit message.** A design made for squash and
+merge-commit landing put a mechanically derived copy of the head commit's
+message at the top of the body, checked byte for byte by a lint, with review
+material optional below a `---` rule, marker comments around the text meant
+to land, and a read-back of the landed message. Every part of it controlled
+what entered history, and under a landing whose only new object is an
+integration commit with a composed trailer block (Part two) the body
+controls nothing; what remained was a copy of text the reviewer can read in
+the commit list, plus tooling to keep the copy honest. Read-back's purpose,
+confirming that what lands is what was reviewed, survives as the tree
+statement in the fold comment and the read-back of the landed candidate in
+Part two.
 
-**An Evidence section** for manual observations, decisive CI runs and coverage gaps. Rejected: a heading named for evidence is the slot an agent fills with a test plan, and it mandates writing a manual result in both the body and the commit's trailer. The one thing it protected, a gap a reviewer must not miss, is kept as a single line under `Check`, phrased as a gap rather than a result.
+**An Evidence section** for manual observations, decisive CI runs and
+coverage gaps. Rejected: a heading named for evidence is the slot an agent
+fills with a test plan, and it mandates writing a manual result in both the
+body and the commit's trailer. The one thing it protected, a gap a reviewer
+must not miss, is kept as a single line under `Check`, phrased as a gap
+rather than a result.
 
-**A final-tip pointer in the body.** Rejected: a hash or CI-run link goes stale on every fold, and the forge shows the head and its checks beside the body. The fold comment carries the reviewed head instead.
+**A final-tip pointer in the body.** Rejected: a hash or CI-run link goes
+stale on every fold, and the forge shows the head and its checks beside the
+body. The fold comment carries the reviewed head instead.
 
-**A conditional closing keyword**, permitted when the branch delivers the whole issue and is not stacked. Rejected for the unconditional rule: the condition coupled two edits across rounds, and Forgejo's title parsing and branch-agnostic closing make the keyword differ by forge.
+**A conditional closing keyword**, permitted when the branch delivers the
+whole issue and is not stacked. Rejected for the unconditional rule: the
+condition coupled two edits across review rounds, and Forgejo's title
+parsing and branch-agnostic closing make the keyword differ by forge.
 
-**A title free of the subject grammar.** Rejected: two phrasings of one change, and the weaker survives.
+**A title free of the subject grammar.** Rejected: two phrasings of one
+change, and the weaker survives.
 
 **A flat word budget.** Rejected for tiered upper bounds.
 
-**Post-landing maintenance rules.** Rejected: the body exists for the review now.
+**Post-landing maintenance rules.** Rejected: the body exists for the review
+now.
 
-**A `Requested:` grammar, `Not done:` in the commit body, a per-round body section, checklists and templates as content sources.** Rejected: no tool parses a line grammar; what the request asked for and the branch omits is a property of the pull request, not a commit; the timeline is the forge's; checkers verify ticks, not truth, and API-created pull requests get no template.
+**A `Requested:` grammar, `Not done:` in the commit body, a per-round body
+section, checklists and templates as content sources.** Rejected: no tool
+parses a line grammar; what the request asked for and the branch omits is a
+property of the pull request, not a commit; the timeline is the forge's;
+checkers verify ticks, not truth, and API-created pull requests get no
+template.
 
-**Reviewer-product summaries in the body.** Bounded, not rejected: fighting a default the product resets on every review is ceremony.
+**Reviewer-product summaries in the body.** Bounded, not rejected: fighting
+a default the product resets on every review is ceremony.
 
 ### What would change the answer
 
-- **A scored sample of agent-written bodies under this format.** If `Check` fills with "check that the tests pass", the gap line becomes a results line, or `Not in this PR` fills with invented follow-ups, the sections are not steering and need tighter definition or a linter rule on the forbidden phrases.
-- **Evidence that the automated reviewers in use read commit messages.** The lead shrinks to the issue link and the gap line may go.
-- **A measured difference** in review time or defects missed between this format, a free-form body and a commit-copy body on matched changes, with link-following cost measured. None exists.
-- **A forge route that lands body text**: a squash, a merge message configured to import the description, or a Forgejo `rebase` template; Part two's settings keep all three off.
-- **Issue-closing automation that a hand close cannot replace**, which reopens the keyword question.
-- **A reviewer product that reads replies and resolved threads**, which makes the comment per push a convenience for humans.
-
-### Sources (part one)
-
-Read on 5 October 2026 unless stated. Read on 11 October 2026: GitHub documentation reusable `required-signed-commits.md`, https://raw.githubusercontent.com/github/docs/main/data/reusables/repositories/required-signed-commits.md (a locally merged commit "may also need bypass permissions" under a pull-request rule). Measurements: Watanabe et al., "On the Use of Agentic Coding: An Empirical Study of Pull Requests on GitHub", https://arxiv.org/html/2509.14745v3; Gong et al., "Analyzing Message-Code Inconsistency in AI Coding Agent-Authored Pull Requests", https://arxiv.org/html/2601.04886v2; ContextCRBench, https://arxiv.org/html/2511.07017v2 (Table 5); Wurzel Gonçalves et al., "Code Review Comprehension", https://arxiv.org/html/2503.21455v1; Li et al., "To Follow or Not to Follow: Understanding Issue/Pull-Request Templates on GitHub", TSE 2022, https://whystar.github.io/res/paper/template-TSE2022.pdf; the AI-reviewer replication package, https://github.com/karlita604/AI-Reviewer-Replication-Package (README and `results/analysis/approval_rates.csv`). Vendor documentation: GitHub, about merge methods, https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github; GitHub, pull request merges (indirect merges), https://docs.github.com/en/pull-requests/reference/pull-request-merges; GitHub, managing a merge queue, https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue; GitHub, allowing changes to a pull request branch created from a fork, https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/allowing-changes-to-a-pull-request-branch-created-from-a-fork; GitHub, linking a pull request to an issue, https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue; GitHub, about protected branches, https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches; GitHub, basic writing and formatting syntax, https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax; GitHub, events that trigger workflows, https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows; GitHub, changing the stage of a pull request, https://docs.github.com/en/pull-requests/how-tos/create-pull-requests/changing-the-stage-of-a-pull-request; GitHub, about stacked pull requests, https://docs.github.com/en/pull-requests/get-started/about-stacked-prs; GitHub Copilot code review, https://docs.github.com/en/copilot/concepts/agents/code-review; CodeRabbit configuration reference, https://docs.coderabbit.ai/reference/configuration; CodeRabbit, context engineering, https://www.coderabbit.ai/blog/the-art-and-science-of-context-engineering; Forgejo configuration cheat sheet, https://forgejo.org/docs/latest/admin/config-cheat-sheet/; Forgejo merge message templates, https://forgejo.org/docs/latest/user/repository/merge-message-templates/; Forgejo linked references, https://forgejo.org/docs/latest/user/collaboration/linked-references/; Forgejo issue 2345, https://codeberg.org/forgejo/forgejo/issues/2345; Forgejo pinned source, https://codeberg.org/forgejo/forgejo/src/commit/8d24b7d52df327118cd776cf461d34e52e0ec1ce/models/issues/issue_xref.go and.../services/pull/merge.go. Project policy: Google, writing good CL descriptions, https://google.github.io/eng-practices/review/developer/cl-descriptions.html; LLVM GitHub guidance, https://llvm.org/docs/GitHub.html; Linux kernel coding-assistants rules, https://docs.kernel.org/process/coding-assistants.html. Read on 3 October 2026: Ram et al. (FSE 2018) on code-change reviewability, https://anandsaw.github.io/publications/fse2018.pdf; Chen et al. (Meta), "Leveraging Test Plan Quality to Improve Code Review Efficacy", https://research.facebook.com/file/596469272122518/Leveraging-Test-Plan-Quality-to-Improve-Code-Review-Efficacy.pdf; Forgejo pinned source for description revision history, https://codeberg.org/forgejo/forgejo/raw/commit/8d24b7d52df327118cd776cf461d34e52e0ec1ce/models/issues/content_history.go; the Claude Code package's pull-request template, https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.288.tgz; Cursor Bugbot documentation, https://cursor.com/docs/bugbot; Renovate's body controls, https://raw.githubusercontent.com/renovatebot/renovate/b12f39eed0b37cddc1ca4b41389414ce54d22f82/lib/workers/repository/update/pr/body/controls.ts.
+- **A scored sample of agent-written bodies under this format.** If `Check`
+  fills with "check that the tests pass", the gap line becomes a results
+  line, or `Not in this PR` fills with invented follow-ups, the sections are
+  not steering and need tighter definition or a linter rule on the forbidden
+  phrases.
+- **Evidence that the automated reviewers in use read commit messages.** The
+  lead shrinks to the issue link and the gap line may go.
+- **A measured difference** in review time or defects missed between this
+  format, a free-form body and a commit-copy body on matched changes, with
+  link-following cost measured. None exists.
+- **A forge route that lands body text**: a squash, a merge message
+  configured to import the description, or a Forgejo `rebase` template; Part
+  two's settings keep all three off.
+- **Issue-closing automation that a hand close cannot replace**, which
+  reopens the keyword question.
+- **A reviewer product that reads replies and resolved threads**, which
+  makes the comment per push a convenience for humans.
 
 ## Part two: how a reviewed branch lands
 
@@ -80,8 +188,10 @@ deeply than the other two, and Gitea not at all. Every forge claim rests on
 documentation, source pinned at a named revision, or commits observed in
 public repositories; no authenticated landing, protection matrix, queue or
 train was exercised end to end, and a deployment may differ by version and
-settings. Confidence is high on the Git object relationships and the inspected
-Forgejo and GitLab method bodies, and moderate overall.
+settings. What is said of Git itself is ordinary Git behaviour, checked on
+Git 2.56 in local repositories. Confidence is high on the Git object
+relationships and the inspected Forgejo and GitLab method bodies, and
+moderate overall.
 
 Notation: `B` is the base tip, `H` the approved head, `C` an integration candidate, `T(X)` the tree of `X`; *behind* means the base has commits the branch lacks; *preserved* means the same objects, hash, tree, message bytes, author and committer fields and dates, and embedded signatures.
 
@@ -91,14 +201,14 @@ Never rewrite reviewed commits. Land a checked integration candidate: a merge
 commit `C = merge(B, H)`, built before landing, checked as the object that
 will land, carrying its own evidence, and then landed by advancing the base to
 exactly `C`. A rewrite gives commits new trees and loses their signatures
-[EXP1][EXP4][CONV], and a merge of a stale branch made at landing time lands a
-tree nobody checked [EXP1][EXP4]. On GitHub that means merge commits only,
+[GIT2][CONV], and a merge of a stale branch made at landing time lands a
+tree nobody checked. On GitHub that means merge commits only,
 through a merge queue where one is available and with the up-to-date rule
 where not; on Forgejo, the fast-forward-only style with the candidate staged
 on the pull-request branch; on GitLab, the fast-forward method with the same
 staged candidate, or merge trains on a busy licensed project. These are policy
-recommendations resting on mechanism and local experiment, not measured
-productivity rankings.
+recommendations resting on Git's behaviour and the forges' mechanisms, not
+measured productivity rankings.
 
 ### What each method does
 
@@ -106,13 +216,13 @@ productivity rankings.
 
 | Method | Branch commits' hashes and trees | Author and committer | Signatures | Source |
 |---|---|---|---|---|
-| Merge commit (`merge --no-ff`) | Unchanged. One new commit whose tree is the merge result. `T(C) = T(H)` when `B` is an ancestor of `H`; the equality can also hold without ancestry, after a base commit whose tree did not change; otherwise the merged tree can differ from every branch commit's without any textual conflict | New commit: whoever commits, under whatever author and committer the environment supplies; forges set these deliberately | Branch signatures intact; the merge commit signed only if its maker signs | [GIT1][EXP1][EXP4][EXP6] |
-| Squash | Replaced on the base by one commit with the merge-result tree; the originals are not deleted and stay reachable from wherever else they are referenced | Whoever commits; forges override the author | Lost on the base; the new commit signed only if the squasher signs | [GIT1][EXP1] |
-| Rebase, cherry-pick, `git replay` | New hashes always. Trees may change, even when the patch applies cleanly and the patch-ids match, and may stay equal even when the base's contents changed; each replayed commit's tree is compared with the tested one, never inferred from the base's movement. Plain `rebase` leaves a current branch alone; `--force-rebase` rewrites it | Author kept; committer whoever runs it | Lost unless re-signed, and re-signing uses the rebaser's key | [GIT2][EXP1][EXP4][EXP6] |
-| Fast-forward (`merge --ff-only`, or a push of the tip) | Unchanged in every respect. Refused on divergence; a head the base already contains reports "already up to date", a no-op that lands nothing, so the landing agent reads the resulting target rather than assuming advancement. The candidate may itself contain merge commits: fast-forward is a ref relationship, not a promise of linear history | Unchanged | Intact | [GIT1][GIT3][EXP1][EXP4] |
-| Message-only amend | Tree unchanged, so the convention's tree test passes; new hash | Committer updated | Dropped unless re-signed | [GIT11][EXP1][EXP4] |
+| Merge commit (`merge --no-ff`) | Unchanged. One new commit whose tree is the merge result. `T(C) = T(H)` when `B` is an ancestor of `H`; the equality can also hold without ancestry, after a base commit whose tree did not change; otherwise the merged tree can differ from every branch commit's without any textual conflict | New commit: whoever commits, under whatever author and committer the environment supplies; forges set these deliberately | Branch signatures intact; the merge commit signed only if its maker signs | [GIT1] |
+| Squash | Replaced on the base by one commit with the merge-result tree; the originals are not deleted and stay reachable from wherever else they are referenced | Whoever commits; forges override the author | Lost on the base; the new commit signed only if the squasher signs | [GIT1] |
+| Rebase, cherry-pick, `git replay` | New hashes always. Trees may change, even when the patch applies cleanly and the patch-ids match, and may stay equal even when the base's contents changed; each replayed commit's tree is compared with the tested one, never inferred from the base's movement. Plain `rebase` leaves a current branch alone; `--force-rebase` rewrites it | Author kept; committer whoever runs it | Lost unless re-signed, and re-signing uses the rebaser's key | [GIT2] |
+| Fast-forward (`merge --ff-only`, or a push of the tip) | Unchanged in every respect. Refused on divergence; a head the base already contains reports "already up to date", a no-op that lands nothing, so the landing agent reads the resulting target rather than assuming advancement. The candidate may itself contain merge commits: fast-forward is a ref relationship, not a promise of linear history | Unchanged | Intact | [GIT1][GIT3] |
+| Message-only amend | Tree unchanged, so the convention's tree test passes; new hash | Committer updated | Dropped unless re-signed | [GIT11] |
 
-In local experiments, a behind-base branch landed by merge, squash, rebase or rebase-then-fast-forward produced the same final tree, and that tree is not one any branch commit was checked on; when the base changed a file the branch also touched, the landed blob never existed in the branch [EXP1]; and a textually clean merge of two sides that each passed their check failed it, the feature enabling work that needs capacity of at least two while the base independently lowered idle capacity to one, in different files [EXP4]. Changing a message changes the commit's identity: a check run on a candidate and then written into that candidate's message is a check on an earlier object of equal tree, which the convention's tree test accepts as a contents claim; a gate that reads commit ids, parents, tags or fetched dependencies is run after the message is final and its result kept outside the commit, bound to the final SHA [GIT11][EXP6].
+A behind-base branch landed by merge, squash, rebase or rebase-then-fast-forward produces the same final tree, and that tree is not one any branch commit was checked on; when the base changed a file the branch also touched, the landed blob never existed in the branch. A textually clean merge of two sides that each pass their check can fail it: a feature that enables work needing a capacity of at least two, merged with a base change that independently lowers the idle capacity to one, in a different file, merges without conflict and fails the check. Changing a message changes the commit's identity: a check run on a candidate and then written into that candidate's message is a check on an earlier object of equal tree, which the convention's tree test accepts as a contents claim; a gate that reads commit ids, parents, tags or fetched dependencies is run after the message is final and its result kept outside the commit, bound to the final SHA [GIT11].
 
 #### GitHub
 
@@ -148,7 +258,7 @@ Forgejo's user documentation describes branch protection only in general terms [
 | Who may land; API | Write access when no rule matches; with a rule, write access or membership of its merge whitelist, which is distinct from the push whitelist [FJ1][FJ15]. `POST /repos/{o}/{r}/pulls/{i}/merge` with `Do`, `head_commit_id` (the merge aborts if the head moved), `MergeTitleField`, `MergeMessageField`, `merge_when_checks_succeed`, `force_merge`, `delete_branch_after_merge`; no expected-base parameter [FJ13][FJ14][FJ25] | Same | Same | Same | Push rights per rule | `Do: manually-merged` with `MergeCommitID` |
 | Forks | Head commits are fetched from the fork; `pull_request` runs from forks get no secrets and a read-only token and may need approval, with workflow definitions optionally taken from the base [FJ19][FJ17][FJ24] | | | | | |
 
-Forgejo has no merge queue: `merge_when_checks_succeed` schedules a merge; at scheduling time a branch-protection failure is skipped (`MergeCheckTypeAuto`), and when the worker fires it re-runs the full check (`MergeCheckTypeGeneral`), so the outdated rule and the others are enforced then, though the worker tests no target-plus-predecessor group and binds no expected base [FJ7][FJ16]. **The outdated rule is not an atomic base guard**: it reads the stored count, the refresh is queued after a base push, and merge preparation fetches the current target separately; the forge's non-forced push protects against divergence after that fetch, but nothing establishes that an earlier local test used that fetched base [FJ9][FJ27][FJ28][FJ19]. Stale-review detection is a combined diff `git diff --name-only -z NEW OLD BASE`, non-empty only for files that differ from both the old head and the base; a clean staged merge of disjoint files therefore keeps approvals, while a file appears only when the merged result differs from both the old head and the base, so two sides making the same change to one file leave the diff empty; the repository's configured dismissal policy then applies; a shared-file fixture [EXP9] is one example of a non-empty result, not a rule for every shared file [FJ20][EXP9]. `RETARGET_CHILDREN_ON_MERGE` (default true) retargets a child PR to the parent's base when the parent merges; retargeting does not itself integrate a new parent merge commit into the child [FJ18][FJ22][EXP6]. The documentation says `pull_request_target` runs on the default branch; the pinned context code sets the run's ref and SHA from the PR's base fields, which differ for a non-default target; the conflict is reported, not resolved [FJ24][FJ17]. The forgejo/forgejo repository itself allows merge, rebase and squash, disables fast-forward-only and defaults to squash, a fact about that project's settings and not a policy for the repositories in scope [OBS8]. On Git 2.56 `git replay` updates refs by default and prints nothing; Forgejo pipes its stdout into `update-ref --stdin`, which succeeds on empty input after the ref has already moved, so the observation establishes no landing failure [GIT6][EXP6].
+Forgejo has no merge queue: `merge_when_checks_succeed` schedules a merge; at scheduling time a branch-protection failure is skipped (`MergeCheckTypeAuto`), and when the worker fires it re-runs the full check (`MergeCheckTypeGeneral`), so the outdated rule and the others are enforced then, though the worker tests no target-plus-predecessor group and binds no expected base [FJ7][FJ16]. **The outdated rule is not an atomic base guard**: it reads the stored count, the refresh is queued after a base push, and merge preparation fetches the current target separately; the forge's non-forced push protects against divergence after that fetch, but nothing establishes that an earlier local test used that fetched base [FJ9][FJ27][FJ28][FJ19]. Stale-review detection is a combined diff `git diff --name-only -z NEW OLD BASE`, non-empty only for files that differ from both the old head and the base; a clean staged merge of disjoint files therefore keeps approvals, while a file appears only when the merged result differs from both the old head and the base, so two sides making the same change to one file leave the diff empty and two sides changing one file differently do not; the repository's configured dismissal policy then applies [FJ20]. `RETARGET_CHILDREN_ON_MERGE` (default true) retargets a child PR to the parent's base when the parent merges; retargeting does not itself integrate a new parent merge commit into the child [FJ18][FJ22]. The documentation says `pull_request_target` runs on the default branch; the pinned context code sets the run's ref and SHA from the PR's base fields, which differ for a non-default target; the conflict is reported, not resolved [FJ24][FJ17]. The forgejo/forgejo repository itself allows merge, rebase and squash, disables fast-forward-only and defaults to squash, a fact about that project's settings and not a policy for the repositories in scope [OBS8]. On Git 2.56 `git replay` updates refs by default and prints nothing; Forgejo pipes its stdout into `update-ref --stdin`, which succeeds on empty input after the ref has already moved, so nothing there establishes a landing failure [GIT6].
 
 #### GitLab (secondary; source pinned at v19.4.1-ee, commit `26212baacadb5beea6664f7ef025d753dccfb0d6`)
 
@@ -157,7 +267,7 @@ Forgejo has no merge queue: `merge_when_checks_succeed` schedules a merge; at sc
 | Methods | "Merge commit" (`--no-ff`), "Merge commit with semi-linear history" (a merge commit only if a fast-forward is possible), "Fast-forward merge" (`--ff-only`). Squash is orthogonal, from "Do not allow" to "Require"; with the merge-commit method a squash adds a squash commit *and* a merge commit; a single-commit branch whose message already matches the chosen message is reused unchanged | [GL1][GL2][GL12] |
 | Identity and signing | Squash author the MR author, committer the initiator; GitLab signs the commits it creates with an instance key where web signing is enabled, and the committer field is configurable; the "Reject unsigned commits" push rule exempts commits created through the UI or API | [GL2][GL7][GL9] |
 | Messages | Merge default `Merge branch '%{source_branch}' into '%{target_branch}'` plus title, issue-closing references and `See merge request %{reference}`; squash default `%{title}`; templates offer `%{all_commits}`, `%{co_authored_by}`, `%{reviewed_by}`, `%{approved_by}`, and may import the description | [GL6] |
-| Behind the target | Merge-commit method: allowed. Semi-linear and fast-forward: `should_be_rebased?` (`ff_merge_must_be_possible? && !ancestor?`) blocks until the target is an ancestor of the source; the predicate is ancestry, not replay, so a prepared merge that contains the target qualifies. The UI or `PUT …/rebase` rewrites the source branch and needs source push and force-push permission, with `skip_ci` an option; "automatic rebase before merge" (generally available 19.2) rebases server-side onto an internal ref without touching the source, "removes GPG signatures" and "does not re-run CI/CD pipelines", so "the merged result might differ from the last pipeline run" | [GL1][GL5][GL14][GL15][GL11][GL13][EXP6] |
+| Behind the target | Merge-commit method: allowed. Semi-linear and fast-forward: `should_be_rebased?` (`ff_merge_must_be_possible? && !ancestor?`) blocks until the target is an ancestor of the source; the predicate is ancestry, not replay, so a prepared merge that contains the target qualifies. The UI or `PUT …/rebase` rewrites the source branch and needs source push and force-push permission, with `skip_ci` an option; "automatic rebase before merge" (generally available 19.2) rebases server-side onto an internal ref without touching the source, "removes GPG signatures" and "does not re-run CI/CD pipelines", so "the merged result might differ from the last pipeline run" | [GL1][GL5][GL14][GL15][GL11][GL13] |
 | Fast-forward landing | `fast_forward!` captures the target tip and passes it as `target_sha`, so Gitaly rejects the update if the target moved; the create-ref service that rebases is used only when automatic rebase is enabled | [GL13][GL17] |
 | What checks test | Merge request pipelines run on the source branch. Merged results pipelines (Premium and Ultimate) test a temporary merge on `refs/merge-requests/N/merge` and fall back to a source pipeline on conflict; a successful merged results pipeline is not refreshed automatically when the target moves and binds no later merge; a train automates the ordered re-run, and an explicit pipeline created on the merge request (`POST …/pipelines`, which can be a merged results pipeline) or an external controller can run a fresh one, with the race between that check and acceptance remaining; the `merge_ref` endpoint computes a temporary state and reserves nothing | [GL10][GL3][GL5] |
 | Merge trains (Premium and Ultimate) | Each car gets a pipeline on the accumulated merge; the merged-result author is the initiator; trains cannot be skipped for fast-forward or semi-linear methods; "merge immediately" bypasses the train. In fast-forward and semi-linear modes the train candidate is *rebased* (`CreateRefService.maybe_rebase!`); in merge-commit mode the landing is a fresh merge rather than the train ref unless every selection condition in the pinned source holds (`merge_trains_use_train_ref_for_standard_merges` on, skipping the train not allowed, and the train's SHA and message matching the merge request's current state), in which case `FromTrainRef` fast-forwards the pipeline's SHA; otherwise the normal strategy builds a new merge whose tree matches the checked one only because the train serialised the target | [GL4][GL11][GL16][GL20] |
@@ -166,21 +276,21 @@ Forgejo has no merge queue: `merge_when_checks_succeed` schedules a merge; at sc
 
 ### Why
 
-Each conclusion is labelled **measurement** (observed in an experiment or a public repository), **mechanism** (documented or source-level behaviour) or **opinion**.
+Each conclusion is labelled **measurement** (observed in a public repository), **mechanism** (Git's behaviour, or a forge's documented or source-level behaviour) or **opinion**.
 
-1. **A landing of a behind-base branch produces a tree nobody checked unless the merged result itself was checked.** Measurement, twice [EXP1][EXP4]: merge, squash, rebase and fast-forward-after-rebase gave the same final tree, different from any branch commit's; a clean merge of two separately passing sides failed its check.
-2. **A rewrite costs, per commit, a re-check or a declared gap, a re-signature where the repository signs, and a rebinding; a merge commit or a fast-forward costs none of these.** Mechanism [CONV][EXP1][EXP4]: `final contents` is bound to the tree. In both fixtures a replay onto a changed base gave every replayed commit a new tree although the patch-ids were unchanged, and a replay onto a base whose tree had not changed kept the tree and lost only the signature [EXP6]; those are the fixtures' results, not a rule, since a content-changing base can also leave a replayed tree equal. The convention requires each replayed commit's claim re-established by comparison, re-run or dropped, not only the tip's, and demands no full-suite run where the tree test passes; identity and signature change on every replay regardless.
-3. **Rewrites discard signatures and no forge restores the authors'.** Mechanism and measurement: GitHub cannot sign rebased commits [GH9] and signs squashes with its own key [OBS3]; Forgejo's replay requests no signature [FJ5]; GitLab's rebase "removes GPG signatures" [GL1]; GitHub's stack rebase "generates signed commits", GitHub's [GH15]. Merge, fast-forward and direct push keep them [EXP1][EXP4][FJ6][FJ12].
-4. **Squash with a concatenated message destroys the trailer record, not only the granularity.** Measurement [EXP1][EXP6][OBS6]: concatenated messages leave one parsed trailer block; the others become body text; an appended attribution paragraph after a blank line leaves only itself parsed [GIT7]. A deliberately composed squash avoids this; the forge defaults do not.
+1. **A landing of a behind-base branch produces a tree nobody checked unless the merged result itself was checked.** Mechanism: merge, squash, rebase and fast-forward-after-rebase give the same final tree, different from any branch commit's, and a clean merge of two separately passing sides can fail its check (the capacity case above).
+2. **A rewrite costs, per commit, a re-check or a declared gap, a re-signature where the repository signs, and a rebinding; a merge commit or a fast-forward costs none of these.** Mechanism [CONV][GIT2]: `final contents` is bound to the tree. A replay onto a changed base gives every replayed commit a new tree although its patch-id is unchanged; a replay onto a base whose tree did not change keeps the tree and loses only the signature; and a content-changing base can also leave a replayed tree equal, so no rule replaces the comparison. The convention requires each replayed commit's claim re-established by comparison, re-run or dropped, not only the tip's, and demands no full-suite run where the tree test passes; identity and signature change on every replay regardless.
+3. **Rewrites discard signatures and no forge restores the authors'.** Mechanism and measurement: GitHub cannot sign rebased commits [GH9] and signs squashes with its own key [OBS3]; Forgejo's replay requests no signature [FJ5]; GitLab's rebase "removes GPG signatures" [GL1]; GitHub's stack rebase "generates signed commits", GitHub's [GH15]. Merge, fast-forward and direct push keep them [GIT1][FJ6][FJ12].
+4. **Squash with a concatenated message destroys the trailer record, not only the granularity.** Mechanism [GIT7][OBS6]: a concatenated message has one parsed trailer block, its final paragraph; the others become body text, and an attribution paragraph appended after a blank line leaves only itself parsed. A deliberately composed squash avoids this; the forge defaults do not.
 5. **Only a landing that lands the checked object is race-free; forge currency rules are not.** Mechanism: GitHub's queue builds and checks the group head and, in the two observed squash cases, landed it as the same SHA [GH4][OBS5], other paths unobserved; Forgejo's fast-forward-only refuses unless the base is an ancestor and its push is not forced [FJ6][FJ1]; GitLab's fast-forward locks the target [GL13]. Forgejo's outdated rule reads a counter refreshed asynchronously after base pushes [FJ9], and GitHub's strict rule's evaluation timing is undocumented [GH21]. The window is small (*opinion*), but it is the difference between a guarantee and a probability. Polling the base and then calling a head-guarded merge leaves a time-of-check, time-of-use gap on every forge [GH6][FJ14][GL5].
-6. **A staged candidate on Forgejo need not cost the approvals.** Measurement [EXP9] of the forge's own test [FJ20]: disjoint files, no stale marking; a shared file, stale marking.
-7. **Merge graphs cost readers little that first-parent views do not restore; the general claim is unmeasured.** Measurement [EXP2][EXP7]: default bisect found the individual bad commit in a merged history and `--first-parent` found the landing [GIT4]; `git log --grep` found three per-commit messages in the merged history and none in the squashed one, because the squash message did not contain them; blame named the branch commit by default and the merge with `--first-parent` [GIT8]; `--first-parent` retains merge commits and hides side branches, while `--no-merges` removes merge records and with them any resolution rationale [GIT5][GIT10]. The staged-candidate shape leaves one merge commit per landing where the update-branch shape leaves two [EXP9]. Opinion: for readers who retrieve lexically, bisect and extract trailers, a merge graph is richer than a squashed line and equal to a rebased line; no measurement of agent retrieval quality over the two shapes exists, and default bisect in a real graph can stop at a merge interaction rather than one commit.
+6. **A staged candidate on Forgejo need not cost the approvals.** Mechanism [FJ20]: the forge's own stale test, run on a staged candidate, marks nothing when the base's commits and the head's touch different files, and marks the review stale when both changed one file differently.
+7. **Merge graphs cost readers little that first-parent views do not restore; the general claim is unmeasured.** Mechanism: in a history of `--no-ff` landings, default bisect finds the individual bad commit and `--first-parent` finds the landing [GIT4]; `git log --grep` finds a per-commit message in the merged history and not in a squashed one whose message does not contain it; blame names the branch commit by default and the merge with `--first-parent` [GIT8]; `--first-parent` retains merge commits and hides side branches, while `--no-merges` removes merge records and with them any resolution rationale [GIT5][GIT10]. The staged-candidate shape leaves one merge commit per landing where the update-branch shape leaves two. Opinion: for readers who retrieve lexically, bisect and extract trailers, a merge graph is richer than a squashed line and equal to a rebased line; no measurement of agent retrieval quality over the two shapes exists, and default bisect in a real graph can stop at a merge interaction rather than one commit.
 8. **A linear history earned by rebasing is the wrong trade for this audience.** Opinion resting on 2, 3 and 7; the kernel's maintainers reach the same conclusion from testing alone, treating a reparented series "like new code" to be retested, while also cautioning against gratuitous back merges [OTHER1].
 9. **Test the post-merge state before it becomes the branch.** Mechanism [OTHER2]: "automatically maintain a repository of code that always passes all the tests" is what the queue, the train and the staged candidate do; passing finite checks is a gate, not a correctness theorem.
-10. **Stacks favour preserved landings and penalise native GitHub stacks.** Measurement [EXP3][EXP6][EXP8]: after a merge or fast-forward landing the child needed no rewrite, though after a merge it is behind the new integration commit; after a squash the child's plain rebase conflicted and `--onto` past the old parent was needed; after a rebase the child was rewritten with the same tree and a new hash. Mechanism [GH15]: a native GitHub stack is rebased at every landing and whenever the trunk moves.
+10. **Stacks favour preserved landings and penalise native GitHub stacks.** Mechanism: after a merge or fast-forward landing of the parent, the child needs no rewrite, though after a merge it is behind the new integration commit; after a squash the child's plain rebase conflicts and `--onto` past the old parent is needed; after a rebase the child is rewritten with the same tree and a new hash; a native GitHub stack is rebased at every landing and whenever the trunk moves [GH15].
 11. **Signatures should survive where the repository signs.** Opinion: a signature binds a commit payload to a key under the repository's trust policy and is the strongest binding of a `Verified:` claim to its maker; a forge re-signature attests that the forge made the object. A signature proves neither that a test ran nor that code is benign, and unsigned author fields and external attestations also record identity, with less strength. The recommendation holds in unsigned repositories on evidence truth and record granularity alone.
 
-**Why the candidate itself is checked, not the branch.** A forge's check can run against one object, be recorded against another and be enforced against a third: GitHub's `pull_request` run checks out the temporary merge `refs/pull/N/merge`, whose `GITHUB_SHA` is the merge commit [GH7], required-status enforcement reads the test merge commit when it has statuses and the head otherwise [GH8], and a workflow may check out the head instead [GH7]; GitLab's merged results pipeline tests `refs/merge-requests/N/merge` [GL3]; Forgejo's statuses are read for the head and its default run checks out the head itself [FJ8][FJ17]. When the base moves afterwards, nothing re-runs: GitHub's `synchronize` fires on head updates only [GH22], GitLab refreshes a merged results pipeline only through a train or a pipeline created explicitly [GL3][GL5], Forgejo refreshes a counter [FJ9]. The green result then stands against a head whose eventual merge tree is `merge(B', H)`, not the `merge(B, H)` that was tested; the two share `H` and every unchanged blob and need share neither whole tree nor outcome [EXP4]. Landing the branch "current" closes the gap only while the base holds still between the update and the merge, and the forge rules that enforce currency are not all atomic (Forgejo's reads a queued count [FJ9]; GitHub's evaluation timing is undocumented [GH21]). Checking the candidate, and landing that exact object, is what makes the recorded result describe the landed tree.
+**Why the candidate itself is checked, not the branch.** A forge's check can run against one object, be recorded against another and be enforced against a third: GitHub's `pull_request` run checks out the temporary merge `refs/pull/N/merge`, whose `GITHUB_SHA` is the merge commit [GH7], required-status enforcement reads the test merge commit when it has statuses and the head otherwise [GH8], and a workflow may check out the head instead [GH7]; GitLab's merged results pipeline tests `refs/merge-requests/N/merge` [GL3]; Forgejo's statuses are read for the head and its default run checks out the head itself [FJ8][FJ17]. When the base moves afterwards, nothing re-runs: GitHub's `synchronize` fires on head updates only [GH22], GitLab refreshes a merged results pipeline only through a train or a pipeline created explicitly [GL3][GL5], Forgejo refreshes a counter [FJ9]. The green result then stands against a head whose eventual merge tree is `merge(B', H)`, not the `merge(B, H)` that was tested; the two share `H` and every unchanged blob and need share neither whole tree nor outcome. Landing the branch "current" closes the gap only while the base holds still between the update and the merge, and the forge rules that enforce currency are not all atomic (Forgejo's reads a queued count [FJ9]; GitHub's evaluation timing is undocumented [GH21]). Checking the candidate, and landing that exact object, is what makes the recorded result describe the landed tree.
 
 ### What this means for the commit format
 
@@ -190,14 +300,15 @@ Each conclusion is labelled **measurement** (observed in an experiment or a publ
   [CONV]. The integration commit's trailer block carries the pull request's
   URL.
 - **The landed tree needs evidence of its own.** A merge that resolves no
-  conflict can still fail a check both sides passed [EXP4], so the
+  conflict can still fail a check both sides passed, so the
   integration commit carries a `Verified:` line for its own tree. `Verified:
   final contents` already describes a merge's tree, so no new claim type is
   needed; landed history is never amended to add a later result.
 - **Tree equality is a contents test, not execution equivalence.** A check
   that reads commit ids, parents, tags or fetched dependencies can differ on
   identical trees; record those inputs or re-run. Same-tree, different-commit
-  cases are shown to exist [EXP6]; effects on real builds are unverified.
+  cases exist, as the table above shows; effects on real builds are
+  unverified.
 - **A tested commit's hash has to stay reachable to be evidence.**
   Unreachable objects are collected [GIT9], so a claim rebound to a
   pre-rewrite hash can point at a commit nobody can inspect. The format
@@ -209,8 +320,8 @@ Each conclusion is labelled **measurement** (observed in an experiment or a publ
 - **Always a merge commit, even when the head contains the base.** Wins where one first-parent node per pull request is a declared reader requirement, where the merge commit is the wanted carrier for the pull-request URL and reviewer record without touching a reviewed commit, or where native queues and fork handling save more than the extra object costs. The GitHub practical default is this shape because GitHub offers nothing else. Its cost is a redundant object and, on Forgejo, one extra check run per landing (*Open questions*).
 - **Fast-forward of the checked tip without a merge commit, bors-style when the base moved** (rebase locally, re-check and re-sign every commit, then true fast-forward). Wins under a hard linear-history requirement, for a linear stack landing in sequence, and when commits are few and gates fast. Loses whenever the base moves between review and landing: every commit rewritten, re-checked, re-signed, possibly re-approved, and its pre-rebase evidence dropped under the commit format's ancestor rule. GitHub's server rebase is not this: it always rewrites [GH1].
 - **Checked candidate pushed directly to the base** by a landing controller with push rights. Wins on Forgejo and GitLab where the project accepts a push-whitelisted bot and has proved the controller enforces review itself; integrates forks without writing their branches; needs the pull request's merged state handled by hand [FJ29]. On GitHub it may need bypass permission under a pull-request rule [GH2]. Never justified merely by discovering that an admin token can do it (*opinion*).
-- **Merge style with the outdated rule and update-by-merge** (Forgejo). A route for fork pull requests the agent cannot push to, acceptable only where the `CommitsBehind` window is consciously accepted; loses the race-freedom, the agent's signature and the message control of the staged candidate, and leaves two merge commits per behind-base landing [FJ9][FJ13][EXP9].
-- **One deliberately composed squash.** Wins only if the pull request, not the commit, were the unit of record, or where the branch's commits are disposable work logs; the convention anticipates it ("where the branch will land by squash, the rebinding goes into the composed message" [CONV]) but its evidence model is per commit, and a pasted review brief or an automatic concatenation is not a composed record [EXP6]. A repository wanting one commit per pull request folds to one commit *before* review and lands it preserved.
+- **Merge style with the outdated rule and update-by-merge** (Forgejo). A route for fork pull requests the agent cannot push to, acceptable only where the `CommitsBehind` window is consciously accepted; loses the race-freedom, the agent's signature and the message control of the staged candidate, and leaves two merge commits per behind-base landing [FJ9][FJ13].
+- **One deliberately composed squash.** Wins only if the pull request, not the commit, were the unit of record, or where the branch's commits are disposable work logs; the convention anticipates it ("where the branch will land by squash, the rebinding goes into the composed message" [CONV]) but its evidence model is per commit, and a pasted review brief or an automatic concatenation is not a composed record. A repository wanting one commit per pull request folds to one commit *before* review and lands it preserved.
 - **Rebase-merge** (Forgejo `rebase-merge`). Inherits every rewrite cost and adds a merge commit; wins nowhere here.
 - **Loose merge with historical branch checks only.** Preserves commit claims and lands an unchecked tree; acceptable only where post-merge discovery is consciously accepted for low-risk work, labelled as such and never called evidence-equivalent to a queue (*opinion*).
 
@@ -243,7 +354,7 @@ Each conclusion is labelled **measurement** (observed in an experiment or a publ
   path.
 - GitHub's strict currency rule: whether "Require branches to be up to date" is evaluated against a fresh base at merge time or against cached mergeability is undocumented [GH21]; the queue sidesteps it, the no-queue practice does not.
 - GitHub's queue with method "merge" was not observed; the Bevy observation used squash. The mechanism does not depend on the method; rated strong but unverified for "merge" [OBS5].
-- The Forgejo staged-candidate procedure was derived from source and reproduced in local Git [EXP5][EXP9], not run against a live instance; the status attachment, the stale-review behaviour and the fast-forward refusal are what an hour on a test instance would confirm.
+- The Forgejo staged-candidate procedure was derived from source and rehearsed in a local Git repository, not run against a live instance; the status attachment, the stale-review behaviour and the fast-forward refusal are what an hour on a test instance would confirm.
 - Forgejo's `pull_request_target` context: documentation and pinned source disagree for a non-default target [FJ24][FJ17].
 - Forgejo's rebase-template amend path: whether ambient configuration signs it is unverified [FJ4]; not a route prescribed here.
 - GitLab trains in merge-commit mode land a fresh merge whose tree equals the checked tree only because the train serialises the target; "merge immediately" breaks that [GL4][GL16].
@@ -362,12 +473,3 @@ Each conclusion is labelled **measurement** (observed in an experiment or a publ
 - [GIT11] https://git-scm.com/docs/git-commit: author and committer environment, amend, signing controls.
 - [OTHER1] https://www.kernel.org/doc/html/latest/maintainer/rebasing-and-merging.html: do not rebase published history; a reparented series is treated as new code and retested; avoid gratuitous back merges.
 - [OTHER2] Graydon Hoare, "technicalities: 'not rocket science' (the story of monotone and bors)", 2014, https://web.archive.org/web/2023id_/https://graydon2.dreamwidth.org/1597.html: "automatically maintain a repository of code that always passes all the tests".
-- [EXP1] An SSH-signed two-commit branch with the base advanced by one disjoint commit; rebase, squash, merge, fast-forward, signed merge, re-signed rebase, no-op rebase, cherry-pick, message-only amend and `git replay`; staleness of a check on `merge(head, base@X)` after the base moved to Y, including a same-file case; `git interpret-trailers --parse` on a GitHub-style squash message and a default merge message; first-parent log.
-- [EXP2] Three branches of three commits merged with `--no-ff`, a defect in the middle commit of the second; `git bisect run` default and `--first-parent`; the same history squashed; `git log --grep`; `git blame` default and `--first-parent`.
-- [EXP3] Parent and child branches; parent landed by merge, fast-forward, squash and rebase under a different committer; `git log main..child`, `git cherry` and `git rebase` on the child.
-- [EXP4] Fast-forward preserving hash, message, identity and SSH signature; `--no-ff` on an unchanged base keeping the tree; `--no-ff` after a base advance merging without conflict and failing the check both sides passed (feature needs capacity ≥ 2, base lowers idle capacity to 1, different files); replay changing both trees and dropping signatures while the old `final contents` text remains; message-only amend keeping the tree and losing the signature; squash concatenation; stacks; refused push.
-- [EXP5] A candidate with parents (base, head) pushed to the PR branch as a fast-forward and landed by fast-forward; an independently advanced target refusing it (exit 128); a retry merging the old candidate into the new target advancing both refs without rewriting.
-- [EXP6] An empty base commit after branching, after which the merge tree equals the head tree without ancestry and a rebase yields a new unsigned commit with the original tree and message; the disjoint integration failure; the target-first-parent prepared merge; a preserved parent leaving the child unchanged but behind the integration merge; concatenated trailers (two blocks parse as one `Verified:`; an appended `Co-authored-by` paragraph leaves only itself parsed); the Forgejo-style `git replay` then `update-ref --stdin` sequence on Git 2.56 succeeding on empty input.
-- [EXP7] A second, isolated run of [EXP2]: default bisect found the defect commit, first-parent bisect the merge, the squashed history the squash; grep and blame as reported.
-- [EXP8] A second, isolated run of [EXP3]: plain child rebase after a squashed parent exits 1; `--onto` succeeds; both successful restacks retain the same child tree.
-- [EXP9] Forgejo's combined-diff stale test applied to a staged candidate (empty for disjoint files, non-empty for a shared file); landed graph shapes (the update-branch route leaves two merge commits, the staged candidate one; identical trees).
