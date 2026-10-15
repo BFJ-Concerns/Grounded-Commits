@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1 — 2026-10-15
 
 - The research records are replaced by two background notes,
   `background/commit-messages.md` and `background/pull-requests.md`, which
