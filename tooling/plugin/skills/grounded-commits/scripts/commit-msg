@@ -434,8 +434,6 @@ def check_trailer_values(trailers, repo, bang, config, anchors=(), native=False)
         canonical = next((k for k in OWN_KEYS if k.lower() == lower), None)
         if canonical is None:
             continue
-        if canonical != key:
-            findings.append(f"trailer key `{key}:` should be spelled `{canonical}:`")
         if canonical == "Verified":
             parts = split_verified(value)
             if parts is None:

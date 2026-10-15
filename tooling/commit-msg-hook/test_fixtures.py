@@ -158,6 +158,8 @@ CASES = [
      "must be `<12-64 hex>", {}),
     ("Breaking-Change needs two parts", GO, "scheduler: drop the v1 endpoint\n\n" + EV + "Breaking-Change: v1 is gone\n",
      "needs `<what breaks>;", {}),
+    ("a trailer key in another case is the same key", GO,
+     "scheduler: renew leases\n\nverified: this commit; go test ./...; ok 12 packages\n", "clean", {}),
 
     # the trailer block as Git reads it
     ("an unindented continuation drops the block", GO,

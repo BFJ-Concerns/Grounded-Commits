@@ -14,8 +14,9 @@ the record, and nobody has to learn a procedure to write a subject.
   are refused.
 - The hook no longer judges the outcome's wording: a capital, a digit, a
   `!`, a full stop, an emoji or an issue number in the subject passes. It
-  no longer asks for a body or forbids headings. Lines may run to 80
-  columns; the guidance asks for about 72.
+  no longer asks for a body or forbids headings. A trailer key in another
+  case (`verified:`) is read as Git reads it. Lines may run to 80 columns;
+  the guidance asks for about 72.
 - Evidence is owed on code-like paths only. Ignore files, `.editorconfig`,
   `.gitattributes`, `.mailmap` and `CODEOWNERS` count as documentation. A
   change that is only renames or whitespace owes none, judged from the diff
