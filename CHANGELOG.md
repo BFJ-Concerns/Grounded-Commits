@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.5.0 — 2026-10-15
+
+The format asks for what matters and leaves the rest to the writer. The
+guidance is a third of its former size, the hook rejects only what breaks
+the record, and nobody has to learn a procedure to write a subject.
+
+- An area is any directory or file name from the changed paths, a path-map
+  label, a listed area, or one of `all`, `docs`, `ci`, `build`, `tests` and
+  `deps`. The derivation procedure, with its lists of collection and layout
+  directories, its only-subdirectory rule and its 24-character cap, is
+  gone. Only the change-type words (`fix`, `feat`, `chore` and the like)
+  are refused.
+- The hook no longer judges the outcome's wording: a capital, a digit, a
+  `!`, a full stop, an emoji or an issue number in the subject passes. It
+  no longer asks for a body or forbids headings. Lines may run to 80
+  columns; the guidance asks for about 72.
+- Evidence is owed on code-like paths only. Ignore files, `.editorconfig`,
+  `.gitattributes`, `.mailmap` and `CODEOWNERS` count as documentation. A
+  change that is only renames or whitespace owes none, judged from the diff
+  rather than from the subject's words, so the list of trivial wordings is
+  gone.
+- A clean merge keeps Git's message and owes nothing; only a merge that
+  resolved conflicts owes evidence. The `forge_merge_committers` key is
+  gone with the exemption it configured. A revert keeps Git's sentence and
+  says whether it is partial.
+- `Verified:` names the tree it tested as `this commit` rather than `final
+  contents`; the hook treats both as words. `Not-verified:` is a scope and
+  a reason in any words; `not run:` and `result unavailable:` are accepted
+  but no longer required. Only an `Introduced-by:` hash is checked for
+  ancestry.
+- The dictated phrases, the named evidence scopes, the tree-hash comparison
+  after a rewrite and the blanket ban on `Signed-off-by` are replaced by the
+  principles they stood for: say so when you do not know why; keep the
+  evidence true of the new tree; add `Signed-off-by` when the person signing
+  asks for it.
+- The pull-request body keeps its lead and four optional sections without
+  word budgets, quotation rules or a fixed comment per push. The fold before
+  final approval is a comment and a range-diff where content moved.
+- Landing fast-forwards a current branch and builds a checked merge only for
+  one that is behind. The GitHub row names no plans and requires no queue;
+  draft state names no forge.
+- The typed-header example describes a non-numeric Content-Length, a defect
+  the server can detect. The examples show how to record that the old code
+  fails the new tests without naming a scratch commit.
+- The README is half its former length; the skills mirror the guidance and
+  drop the area-derivation, rewrite and before-landing references; the
+  `--tracked` flag is gone with the tree-reading derivation.
+
 ## 0.4.1 — 2026-10-15
 
 - The research records are replaced by two background notes,
