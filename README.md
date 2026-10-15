@@ -1,58 +1,16 @@
 # Grounded Commits
 
-**Version 0.4.1** · [Changelog](CHANGELOG.md) · MIT licence
+**Version 0.5.0** · [Changelog](CHANGELOG.md) · MIT licence
 
 A commit-message format, and a pull-request convention to go with it, for
-repositories where coding agents write most of the commits, open most of the
-pull requests, and read the history back as their memory. It works with any
-agent tool, any language and any forge, and it does not require you to change
-how branches land.
+repositories where coding agents write most of the commits and read the
+history back as their memory. It works with any agent tool, any language and
+any forge, and it does not require you to change how branches land.
 
-## Quick start
+The whole thing rests on one rule:
 
-1. **Copy the guidance into your repository's instructions for agents**
-   (`AGENTS.md`, `CLAUDE.md` or whatever your tool reads):
-   [`guidance/commit-messages.md`](guidance/commit-messages.md) and
-   [`guidance/pull-requests.md`](guidance/pull-requests.md). They replace the
-   commit style and pull-request template the tool ships with.
-   With Claude Code or Codex, install the agent plugin instead: it carries
-   the same guidance as two skills, one for commits and one for pull
-   requests, with the hook bundled. In Claude Code:
-   ```
-   /plugin marketplace add BFJ-Concerns/Grounded-Commits
-   /plugin install grounded-commits@grounded-commits
-   ```
-   In Codex:
-   ```sh
-   codex plugin marketplace add BFJ-Concerns/Grounded-Commits
-   codex plugin add grounded-commits@grounded-commits
-   ```
-   Then start a fresh session, in which the tool lists the two skills, and add
-   a line to the repository's guidance for agents saying that its commits and
-   pull requests follow Grounded Commits. The skills also treat a
-   repository with a `.grounded-commits.toml` or the hook as adopting the
-   format, and elsewhere apply only when asked.
-2. **Install the hook**, which checks the mechanical rules and tells the agent
-   which areas a change could use. In the repository that is adopting the
-   format, with Python 3.8 or newer (3.11 or newer to read the optional
-   configuration file) and Git 2.38 or newer available. The hook's path is
-   what `git rev-parse --git-path hooks/commit-msg` prints, which honours
-   `core.hooksPath` and a linked worktree, where `.git` is a file; if a hook
-   already exists there, keep it, save the checker beside it under another
-   name and call it from the existing hook, as
-   [`tooling/README.md`](tooling/README.md) shows. With no hook there:
-   ```sh
-   hook=$(git rev-parse --git-path hooks/commit-msg)
-   curl -fsSL -o "$hook" \
-     https://raw.githubusercontent.com/BFJ-Concerns/Grounded-Commits/main/tooling/commit-msg-hook/commit-msg
-   chmod +x "$hook"
-   python3 "$hook" --areas
-   ```
-   [`tooling/README.md`](tooling/README.md) also covers the optional
-   configuration and the `--range` check for CI and landing.
-3. **Optionally, decide how branches land** with
-   [`guidance/landing.md`](guidance/landing.md). A checked integration
-   candidate is the default; every merge method is covered.
+> **Write only what you have: the request, what you observed, what you
+> changed, what you ran. Say plainly what you lack.**
 
 Here is what a commit looks like:
 
@@ -60,22 +18,60 @@ Here is what a commit looks like:
 scheduler: stop running a job twice when a worker shuts down
 
 On shutdown the worker released its leases before draining its local
-queue, so a dequeued job was handed to another worker and also run
-locally. The reproducer shows duplicate invoice emails (issue 301).
+queue, so a job it had already dequeued was handed to another worker
+and also run locally. The symptom was duplicate invoice emails
+(issue 301).
 
-Drain the local queue first, then release leases. The new ordering
-test fails at 9f3c1a2b7d4e and passes at its parent, which
-establishes that commit as the origin.
+Drain the local queue first, then release leases.
 
-Verified: 9f3c1a2b7d4e^, 9f3c1a2b7d4e and final contents;
-  go test ./scheduler/... -run TestShutdownOrdering -count=50;
-  0 of 50, 7 of 50 and 0 of 50 runs failed respectively
-Not-verified: replay against production incident data; not run: the
-  data is not retained outside the billing environment
-Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
-  shutdown")
+Verified: this commit; go test ./scheduler/... -run TestShutdownOrdering
+  -count=50; 0 of 50 runs failed, against 7 of 50 on the parent
+Not-verified: replay against production incident data; the data is not
+  retained outside the billing environment
 Refs: https://forge.example/ops/billing/issues/301
 ```
+
+A subject that says where and what. A body that says what was wrong and what
+changed. Trailers that say what was actually run, and what was not. That is
+the whole format.
+
+## Quick start
+
+1. **Tell your agent.** Paste
+   [`guidance/commit-messages.md`](guidance/commit-messages.md) and
+   [`guidance/pull-requests.md`](guidance/pull-requests.md) into your
+   repository's instructions for agents (`AGENTS.md`, `CLAUDE.md` or whatever
+   your tool reads), or link to them. Together they are about 13 KB.
+
+   With Claude Code or Codex you can install the plugin instead, which carries
+   the same guidance as two skills with the hook bundled:
+   ```
+   /plugin marketplace add BFJ-Concerns/Grounded-Commits
+   /plugin install grounded-commits@grounded-commits
+   ```
+   ```sh
+   codex plugin marketplace add BFJ-Concerns/Grounded-Commits
+   codex plugin add grounded-commits@grounded-commits
+   ```
+   Then add one line to the repository's guidance saying its commits follow
+   Grounded Commits.
+
+2. **Install the hook.** Optional, but it is what makes the format stick. One
+   Python file with no dependencies; it checks the mechanical rules on every
+   commit, whatever tool makes it, and leaves the wording alone:
+   ```sh
+   hook=$(git rev-parse --git-path hooks/commit-msg)
+   curl -fsSL -o "$hook" \
+     https://raw.githubusercontent.com/BFJ-Concerns/Grounded-Commits/main/tooling/commit-msg-hook/commit-msg
+   chmod +x "$hook"
+   ```
+   If a hook already exists there, [`tooling/README.md`](tooling/README.md)
+   shows how to chain them. It also covers the optional configuration file
+   and the `--range` check for CI.
+
+3. **Decide how branches land**, if you want to.
+   [`guidance/landing.md`](guidance/landing.md) says what each merge method
+   does to the commits and how to keep what was reviewed.
 
 ## Why this exists
 
@@ -101,278 +97,107 @@ Agents change both ends of that.
 
 - They narrate the diff and leave out the context a reader needs. In
   [one study](https://arxiv.org/html/2401.17622v2) of 108 commit messages
-  generated by ChatGPT from diffs, 38 lacked context and 6 invented a
-  reason. That is a post-hoc generator, not a task agent; the failure mode
-  is the same one task agents are instructed into when their tools say to
-  summarise the diff.
+  generated by ChatGPT from diffs, 38 lacked context and 6 invented a reason.
 - They copy whatever the history already looks like. Their tools tell them to
   match the repository's recent commits, and in
   [one sample](https://arxiv.org/html/2601.18341v2) 513 of 790
   Claude-attributed commits carried a Conventional Commits prefix, though the
-  tool's own instructions never mention the format. The study leaves the cause
-  open; imitation of project style is one mechanism.
+  tool's own instructions never mention the format.
 - They overclaim. Of
   [432 agent pull requests](https://arxiv.org/html/2601.04886v2) whose
   descriptions did not fully match their code, 45.4% claimed changes that had
   not been made. In [a matched sample](https://arxiv.org/html/2509.14745v3),
   agent descriptions ran to a median of 355 words against 56 for people's.
 
-**As readers**, agents search history before they understand it, by keyword and
-pattern. They cannot ask the author what they meant. And they act on what they
-read: a planted commit message
+**As readers**, agents search history before they understand it, by keyword
+and pattern. They cannot ask the author what they meant. And they act on what
+they read: a planted commit message
 [has already steered an agent](https://github.com/cyanheads/git-mcp-server/security/advisories/GHSA-3q26-f695-pp76)
 into an unintended Git operation carrying a shell payload.
 
 Yet when an agent commits, it holds four things it did not have to guess: the
 request it was given, what it observed, what it changed, and what it ran. The
 measured failures come from leaving those out or making them up, not from bad
-syntax. So the whole system rests on one rule:
+syntax. Hence the one rule, which overrides the style of existing commits and
+any tool instruction to imitate it.
 
-> **Write only what you have: the request, what you observed, what you changed,
-> what you ran. Say plainly what you lack.**
+## The format in brief
 
-The rule overrides the style of existing commits, and any tool instruction to
-imitate it.
-
-## How it fits together
-
-```
-work on a branch → commits carry the record → the PR body guides review
-                 → land by any method that keeps the commit messages
-```
-
-- **Commit messages are the record.** Anyone with a clone, person or agent, can
-  learn what changed, why, and what was checked, without the forge.
-- **The pull request is for review.** Its body helps whoever is reviewing now,
-  and is written so that it can be thrown away.
-- **Landing is your choice.** The default builds the merge commit before it
-  lands, checks it as the object that will land and advances the target to
-  it, so no reviewed commit is rewritten; squash works with a composed
-  message; rebasing before a fast-forward replays every commit and is not
-  used. [`guidance/landing.md`](guidance/landing.md) has the table.
-
-## Commit messages
-
-A message has three parts: a subject line, a body, and a block of trailers.
-Trailers are `Key: value` lines at the very end, which Git can read on its own.
-The full rules are in [`guidance/commit-messages.md`](guidance/commit-messages.md);
-this is the shape and the reasoning.
+The full rules are in [`guidance/commit-messages.md`](guidance/commit-messages.md).
 
 ### Subject: `area: outcome`
 
-```
-scheduler: stop running a job twice when a worker shuts down
-```
-
-- **Area** is the part of the codebase the change is about, worked out from
-  the changed paths: a label from the repository's path map if it has one, or
-  else the first directory segment that is not structure. Structure means
-  collection directories such as `packages`, `crates`, `cmd` and `internal`,
-  layout directories such as `src`, `lib`, `app` and `include` together with a
-  lone subdirectory directly beneath one, and the reverse-domain package root
-  under `java`. So `internal/scheduler/worker.go` gives `scheduler`,
-  `src/mypkg/cli.py` gives `cli` while `mypkg` is the only directory under
-  `src`, `app/models/user.rb` gives `models` beside other directories under
-  `app`, `src/main/java/com/acme/billing/Invoice.java` gives `billing`, and a
-  root `README.md` gives `readme`. The rule reads only the paths and the tracked
-  directory tree, so the one change elsewhere that moves an area is a layout
-  directory gaining or losing its second subdirectory. Lower case, at most 24
-  characters. A change across everything uses `all`. Type words such as
-  `feat`, `fix` or `chore` are never areas, and a bare `ci`, `docs`, `test`,
-  `tests` or `build` is one only when it names a directory, a path-map label
-  or a listed area. Derivation is a default; a
-  repository it does not fit writes a path map. The hook prints the
-  candidates: `python3 .git/hooks/commit-msg --areas`.
-- **Outcome** says what is now true. It begins in lower case, identifiers keep
-  their case, and there is no full stop, issue number, emoji or `!`.
-- At most 72 characters; aim for 60.
-
-When a change spans several areas, the subject names the one whose behaviour
-it describes and the body names the others. That is the one judgement the
-procedure leaves; everything else is derived.
+The area says where the change lives: a directory or file name from the
+changed paths, a name the repository lists, or one of `all`, `docs`, `ci`,
+`build`, `tests` and `deps`. Never a word for the kind of change (`fix`,
+`feat`, `chore`): the format has no types. The outcome says what is now true.
+Aim for 72 characters.
 
 Why an area and not a type? Neither has been shown to help readers. But an
-area can be derived from the paths by a fixed procedure, while a type (`feat`,
-`fix`, `refactor`) is a judgement about intent that nothing can check. Agent
-commits are often large and mixed, so a single type per commit loses
-information. A typed header is still available where a tool needs it; see
-[Conventional Commits](#conventional-commits).
+area can be read off the paths, while a type is a judgement about intent that
+nothing can check, and agent commits are often large and mixed, so one type
+per commit loses information. A typed header is still available where a
+release tool needs one; see [Conventional Commits](#conventional-commits).
 
 ### Body: the problem first
 
-Wrapped at 72 columns, no headings, in this order:
+What was wrong or missing, as it reached the writer; what changed and why this
+way; optionally what was considered and rejected, and what is left out. Never
+a list of edits, and never a reason the writer was not given: if you do not
+know why, say so. The body can be left out when the subject says everything.
 
-1. **The problem or goal:** what was wrong or missing, or what should be true
-   afterwards, as it reached the writer; how it showed; and the names a
-   searcher would type. A source only where it gives the reader something the
-   commit cannot (an issue, or a document outside the project's control that a
-   reader can open), never the person the writer works for, who is the commit's
-   author, and never the tool or model that surfaced it.
-2. **The change, and why this way,** described as behaviour, never as a list of
-   edits.
-3. Optionally, **`Considered and rejected:`** alternatives that were actually
-   weighed, one per sentence.
-4. Optionally, **limits.** A breaking change names what breaks and how to
-   migrate, or says the migration is unknown.
-
-Every reason must trace to something the writer actually has: an observation, a
-reference, or its instructions, and is written as the reason, not as the
-asking: "the README has no clone step", not "the author asked for one". When
-the writer does not know why, it writes "reason not available to the writer"
-rather than inventing a reason.
-
-Claims carry obligations. "No behaviour change intended" means the test suite
-ran on the final contents, or a `Not-verified:` line says it did not. A
-repaired bug names its symptom and its reproducer, or declares that gap. A
-claimed speed-up gives before-and-after figures, or declares that gap.
-
-The body can be left out only when behaviour does not change and the subject
-names a typo, a broken link, formatting, comment wording, a rename with no
-callers changed, or a regenerated file. A dependency bump always has a body.
-
-### Trailers: evidence Git can extract
+### Trailers: what was actually run
 
 ```
-Verified: <what was tested>; <command or scenario>; <what happened>
-Not-verified: <scope>; not run: <reason>
-Not-verified: <scope>; result unavailable: <reason>
+Verified: <what was tested>; <command or scenario>; <what you saw>
+Not-verified: <what was not checked>; <why>
 Refs: <absolute URL>
-Introduced-by: <commit hash> ("<that commit's subject>")
+Introduced-by: <hash> ("<subject of the commit that introduced the defect>")
 Breaking-Change: <what breaks>; <what the consumer must do>
 ```
 
-- The block is the last paragraph of the message, after a blank line, with no
-  blank line inside it and every wrapped line indented. Git reads only the last
-  paragraph as trailers, so a trailer above a blank line is silently lost, and
-  a block with an unindented wrapped line is usually not read at all. The hook
-  catches both.
-- Every commit that touches code, tests, configuration, schemas, dependencies,
-  build files or a documented contract carries at least one `Verified:` or
-  `Not-verified:` line. Empty values, a bare "passed" and "N/A" do not count.
-- `Not-verified:` is the honest way out. When saying nothing earns nothing,
-  guessing is the rational move, so the format gives the writer a proper way to
-  say "I didn't run this" or "the result is lost". `not run` covers every case
-  where you know the check did not happen; `result unavailable` covers a check
-  that ran and whose outcome cannot be recovered, and one you cannot tell ran at
-  all. The reason says what kept the check from running or its result from
-  being recovered, such as no Windows runner or an expired CI log, never who
-  will run it later or where in a pipeline it runs.
-- `Verified:` is a claim, not proof. A hook can check its shape; only review and
-  sampling can check that it is true. Its value splits at the first and last
-  semicolons, so only the command in the middle may contain one.
-- "What was tested" names the code that was tested. After a rewrite, a
-  `Verified: final contents` line stays only if the code is identical to what was
-  tested, or the check was run again. Otherwise the line says in words what was
-  tested, and a `Not-verified:` line covers the new tree where the rewrite
-  touched the commit's files. A hash in a message names an ancestor of the
-  commit, so it stays reachable; a commit a rewrite replaced is never named.
-- `Refs:` is a full URL, never a closing keyword such as "Fixes #12".
-- `Introduced-by:` names the commit that introduced a bug, and only when the body
-  says the bug was shown present at that commit and absent at its parent.
-  `git blame` finds the last change to a line, not where a bug began. The key
-  is not called `Fixes:` because that word is an issue-closing keyword on
-  GitHub, GitLab and Forgejo by default, and a slip from a hash to an issue
-  link would close the issue on some forges.
+Every commit that changes code carries at least one `Verified:` or
+`Not-verified:` line. `Verified:` is a check the writer ran and saw the result
+of, with the decisive output rather than "passed". `Not-verified:` is the
+honest way out, and always acceptable: what was not checked, and why.
+Documentation, ignore files, renames and whitespace need neither.
 
-Why trailers? Git can pull them out by key without reading the body, for example
-`git log --format='%(trailers:key=Verified,valueonly)'`. Nothing can pull
-evidence out of prose.
+Why trailers? Git can pull them out by key without reading the body
+(`git log --format='%(trailers:key=Verified,valueonly)'`); nothing can pull
+evidence out of prose. And `Verified:` is a claim, not proof: the hook checks
+its shape, and review and sampling check its truth.
 
-### Never in a commit message
+### Never in a message
 
-A narration of the diff or a list of files; a motive the writer was not given;
-the asking in place of the reason; "tests pass" without naming the tests; CI
-control tokens such as `[skip ci]`,
-even quoted; issue-closing keywords; instructions to future readers or agents
-(history is read as input, so it must not give orders); and the machinery
-behind the change: plan steps, planning-record codes, scratch paths, and the
-pipeline, review round or model that made or found it or will run a later
-check. Say what was found, not what found it; a `Verified:` line still names
-its command, and a CI run that reported a result.
+Narration of the diff; a motive the writer was not given; "tests pass" without
+naming the tests; CI control tokens such as `[skip ci]`; issue-closing
+keywords; instructions to future readers or agents; and the machinery behind
+the change, such as plan steps, task codes, and the tool or model that made
+it. Say what was found, not what found it.
 
 ## Pull requests
 
 Because the commits carry the record, the pull request does not have to. Its
-body is a short brief for whoever is reviewing now, person or bot. It holds only
-what no commit can: where to start, what to look at hard, what could not be
-checked, how to see the change work, and what was asked for but is not here.
-The full rules are in [`guidance/pull-requests.md`](guidance/pull-requests.md).
+body is a short brief for whoever is reviewing now, person or bot: a lead
+saying what the branch is for, then only the sections that have something to
+say. **Read** (where to start), **Check** (what to look at hard, and what
+could not be checked), **Try** (how to see it work), **Not in this PR** (what
+is deliberately absent). A one-commit pull request usually needs the lead and
+nothing else. The full rules are in
+[`guidance/pull-requests.md`](guidance/pull-requests.md).
 
-### Title
+Never in the body: a copy of a commit's reasoning, results or assurances such
+as "all tests pass", checklists, instructions to review bots, or closing
+keywords. In
+[one experiment](https://github.com/karlita604/AI-Reviewer-Replication-Package),
+unsupported assurances raised two open-weight reviewer models' approval of
+known-bad patches from 54.4% to 70.0% and from 23.2% to 42.0%.
 
-The outcome of the whole branch, in the same grammar as a commit subject under
-the repository's header profile. For a one-commit pull request, the title is
-that commit's subject. Draft state uses the forge's mechanism: a draft flag on
-GitHub and GitLab, the configured `WIP:` prefix on Forgejo and Gitea.
-
-### Body
-
-A lead of one or two sentences, then up to four sections. A section with nothing
-to say is left out; a heading followed by filler is a defect. Essential facts go
-in visible prose, never in HTML comments, collapsed sections or images, and
-pasted output never goes in the body beyond the one line that identifies the
-failure the branch addresses.
-
-| Part | When | What it holds |
-|---|---|---|
-| Lead (no heading) | Always | The problem or request and what the branch does about it, with a plain link to the issue when one exists. The body's deliberate overlap with the commits. |
-| **Read** | Several commits, a stacked PR, or a diff whose shape is not obvious | Which commits prepare and which change behaviour; where to start; for a stacked PR, its base and the PR it depends on |
-| **Check** | When there is something specific | What to scrutinise; a gap or a break a commit records, in one line naming the commit by subject; questions for the reviewer, with what depends on the answer |
-| **Try** | When the change can be exercised or seen | Steps to try it and what each should show; captioned screenshots. What the author observed is on the commit. |
-| **Not in this PR** | When the request asked for more than the branch delivers, a review round removed something from the branch, or a reviewer would expect something that is deliberately absent | Each item, with a link to the issue that tracks it, "not planned" or "no issue exists" |
-
-Length limits are soft upper bounds: about 50 words for one commit, 150 for a
-series, and 250 for several separate outcomes.
-
-### Never in the body
-
-- A copy or paraphrase of a commit's reasoning, trailers or file list, and
-  narration of the diff. The lead and the **Check** lines above are the
-  permitted overlaps.
-- Results or assurances such as "all tests pass" or "safe". What ran is in the
-  commits' `Verified:` lines. In
-  [one experiment](https://github.com/karlita604/AI-Reviewer-Replication-Package),
-  unsupported assurances raised two open-weight reviewer models' approval of
-  known-bad patches from 54.4% to 70.0%
-  and from 23.2% to 42.0%; a closed model in the same package showed no such
-  rise.
-- Checklists. A tick is not evidence, and some bots treat a ticked box as a
-  command.
-- Instructions to automated reviewers or to future readers or agents, and claims
-  that a reviewer agreed.
-- Commit hashes or CI links as pointers to the current head, which the next
-  push replaces. Name commits by their subject.
-- Issue-closing keywords. Link issues plainly, and close them by hand after
-  landing.
-
-### During review
-
-- The body always describes the current branch. After each push, rewrite
-  whatever is no longer true and remove settled questions. Do not append dated
-  updates.
-- Put what each push changed in one comment. Answer declined findings in their
-  thread. If a reason matters in the long run, fold it into the relevant commit's
-  `Considered and rejected:` before landing.
-- Push fix-up commits during review rather than force-pushing, so reviewers can
-  see what changed.
-- Editing the body does not by itself re-run CI or wake review bots, unless a
-  workflow has opted into edit events. When an edit changes something a
-  reviewer relied on, ask for review again.
-
-### Example
-
-Four commits:
+Four commits, one outcome:
 
 ```
-export: extract row serialisation from the buffered writer
-export: add a streaming writer behind the existing interface
-export: stream CSV exports instead of buffering them in memory
-docs: describe the X-Row-Count trailer for export clients
-```
+Title: export: stream CSV exports instead of buffering them in memory
 
-Title: `export: stream CSV exports instead of buffering them in memory`
-
-```
 Exports of over a million rows kill the worker at 2 GB (https://github.com/example/reports/issues/318). This branch streams rows as the cursor advances and moves the row count to a trailer.
 
 ### Read
@@ -380,150 +205,62 @@ The first two commits are mechanical and keep the buffered path; the third, "str
 
 ### Check
 Content-Length disappears from export responses; the "stream CSV exports" commit records the break. Do we know of any client that reads it?
-Production-volume replay not run; the "stream CSV exports" commit's trailer says why.
+Production-volume replay not run; the "stream CSV exports" commit says why.
 
 ### Try
 Against staging, request /exports/1.4m.csv with curl -N; worker RSS should stay flat where it used to climb to 2 GB.
 
 ### Not in this PR
-A progress signal for clients that used Content-Length to show one; no issue exists.
+A progress signal for clients that used Content-Length to show one; not tracked yet.
 ```
-
-Nothing in it repeats a commit's reasoning, lists files or claims a result.
 
 ## Landing
 
-The landing guide is optional, but knowing what your merge method does to the
-commits is not, because they are the record. The default lands a **checked
-integration candidate**: a merge commit whose first parent is the target's tip
-and whose second is the approved head, built before landing, checked as the
-object that will land, signed by whoever made it, carrying the pull request's
-URL and a `Verified:` line for its own tree; then the target advances to
-exactly that commit. No reviewed commit is rewritten, so every hash, tree,
-message and signature the reviewers saw is what lands, and the one new tree is
-the one that was checked. On GitHub a merge queue builds and lands the
-candidate; on Forgejo the agent stages it on the pull-request branch and lands it
-with the fast-forward-only style; on GitLab the same staging
-under the fast-forward method, or merge trains.
-
-Rebasing before a fast-forward, whether the forge does it or you do, replays
-every commit as a new object: trees the checks may never have run on,
-signatures gone, every evidence line to rebind. Squash does the same in one commit, and is
-supported where a repository wants one commit per pull request, with the
-landing agent composing its message in the commit format from the branch's
-commits. A forge's merge of a branch that fell behind lands a tree nobody
-checked, because on GitHub the checks ran on a temporary merge and recorded
-the result against the head's hash, and on Forgejo on the head alone; the
-up-to-date rule and the merge queue exist to close that gap.
-
-Whatever the method, four things hold: the reviewed commits land unchanged, or
-under squash the one landed message is composed from them, never taken from
-the forge's default; the landed tree was checked before it landed, by the
-landing agent or by the forge's own run read back;
-nothing from the pull-request body enters history; and issues are closed by
-hand after landing. The methods, their costs and the settings for each forge
-are in [`guidance/landing.md`](guidance/landing.md), including pull requests
-from forks.
-
-## Hurdles and trade-offs
-
-- **Agents copy the history and default to Conventional Commits.** The rule
-  overrides both, but only the `commit-msg` hook makes it stick, and a local
-  hook sees only the commits made where it is installed. Run the hook's
-  `--range` check over a branch before it lands, or in CI.
-- **Integration changes what was tested.** If the target moved, the merged tree
-  is one no branch commit's checks ran on. The candidate is checked before it
-  lands and carries its own `Verified:` line; rewriting the branch instead would
-  owe that per commit.
-- **`Verified:` is self-reported.** The hook checks its shape, not its truth.
-  Review and sampling do the rest, until tools record what actually ran.
-- **Outside contributors' commits will not follow the format.** The landing
-  guidance gives three routes: land them as written through a candidate on a
-  maintainer-owned branch, squash them with a composed message, or ask the
-  contributor to fold and reword.
-- **The merge commit is the only summary of a multi-commit branch in history:**
-  Git's subject, the pull request's URL and the integration's evidence. Each
-  commit still has to stand on its own; the review brief lives only on the
-  forge.
-- **Issues close by hand.** Without closing keywords, someone closes each
-  delivered issue after landing. That is one action per issue, traded for
-  keywords that behave differently on different forges and target branches.
-- **Tools need configuring.** Agent tools ship their own pull-request template,
-  which repository guidance must replace. Review bots that write summaries into
-  the description should be switched to comment mode.
-- **Agents fill whatever space they are given.** That is why every pull-request
-  section but the lead is optional, results have no section to live in, and the
-  length limits are low.
-- **One question gets harder.** With no type in the subject, "which commits were
-  bug fixes?" needs a keyword search rather than a match on `fix`.
-- **The cost of the ceremony is unmeasured.** That it pays for itself is a
-  judgement.
+Optional. The one thing to know is that the commits are the record, so a
+method that rewrites them, a rebase or a squash, leaves `Verified:` lines
+describing trees that were never tested. Fast-forward a branch that is
+current; for one that is behind, merge the target into it or build and check
+the merge commit before it lands. [`guidance/landing.md`](guidance/landing.md)
+has the settings and steps for GitHub, Forgejo, GitLab and plain Git, and
+the routes for pull requests from forks.
 
 ## Conventional Commits
 
-Not the default, but available as a **typed header profile**,
-`type(area): outcome`, for repositories that run a release tool which reads
-types (semantic-release, release-please and the like), or that need to list
-changes by kind. The body, trailers and evidence rules are unchanged, and the
-pull-request title follows the same profile. The hook enforces it with
-`header = "typed"` in its configuration.
+Not the default, but available as a typed header profile,
+`type(area): outcome`, for repositories that run a release tool reading types
+(semantic-release, release-please and the like). The body and trailers are
+unchanged. Set `header = "typed"` in `.grounded-commits.toml` and the hook
+enforces it.
 
-The default leaves out the type for three reasons: an area can be derived from
-the changed paths and a type cannot; agent commits are large and mixed; and
-adding a type later is cheaper than removing one. That is a judgement of
-cost, not a measured result.
+## Trade-offs
+
+- **Agents copy the history and default to Conventional Commits.** The
+  guidance overrides that; the hook makes it stick; `--range` in CI catches
+  what a local hook misses.
+- **`Verified:` is self-reported.** The hook checks its shape, not its truth.
+- **Issues close by hand.** Without closing keywords, someone closes each
+  delivered issue after landing.
+- **Outside contributors' commits will not follow the format.** The landing
+  guidance gives three routes.
+- **One question gets harder.** "Which commits were bug fixes?" needs a
+  keyword search rather than a match on `fix`.
+- **The cost of the ceremony is unmeasured.** That it pays for itself is a
+  judgement.
 
 ## How confident is this?
 
-**Moderately.** No study compares commit or pull-request formats with equal
-information for agent readers or agent writers. The design rests on mechanisms,
-published measurements and judgement. Whether the format steers agents away
-from narration and invented results is a hypothesis the format is built to make
+Moderately. No study compares commit or pull-request formats with equal
+information for agent readers or writers. The design rests on mechanisms,
+published measurements and judgement; whether it steers agents away from
+narration and invented results is a hypothesis the format is built to make
 testable, not a measured effect.
 
-Before relying on it:
-
-- Install the hook.
-- Score a sample of real agent commits and pull requests for narration, invented
-  reasons and filler in the evidence lines.
-- Decide how pull requests from outside contributors land.
-
-## What would change the answer
-
-- A controlled comparison of this format against a typed header with the same
-  body and evidence rules, run separately for readers and writers.
-- A scored sample showing that the evidence lines attract filler faster than
-  honest disclosure.
-- Commands recorded by the agent's tools that disagree with its `Verified:`
-  lines; the trailer would then point at captured evidence instead.
-- A test of how well matching `fix` finds bug fixes compared with keyword search
-  over area subjects.
-- Evidence that review bots read commit messages, which would let the pull
-  request's lead shrink.
-- A landing exercised end to end on each forge by the documented steps, which
-  would turn the landing guidance from a reading of documentation and source
-  into an observed procedure.
-- A measurement of how agents retrieve from a merge graph against a linear
-  history, which decides whether the integration merge costs readers anything.
-- An observation that a merge queue lands the exact object it checked under
-  the merge method, which is established for squash and inferred for merge.
-
-## Background
-
-The evidence behind the guidance, with the sources it rests on:
-
-- [`background/commit-messages.md`](background/commit-messages.md): what
-  studies and tool behaviour say about agent writers and readers, the case
-  for and against Conventional Commits, the alternatives, and the choices
-  still contested.
-- [`background/pull-requests.md`](background/pull-requests.md): why the
-  pull-request body is a short review brief, and what each landing method
-  does to commits on GitHub, Forgejo and GitLab.
-
-The notes were put together by asking coding agents to read the
-documentation, forge source and papers cited, and to try the Git behaviour
-described in scratch repositories. Check the cited sources rather than
-relying on the notes' wording.
+The evidence and the open questions are in
+[`background/commit-messages.md`](background/commit-messages.md) and
+[`background/pull-requests.md`](background/pull-requests.md). The notes were
+put together by asking coding agents to read the cited sources and try the
+Git behaviour in scratch repositories; check the sources rather than relying
+on the notes' wording.
 
 ## Licence
 
