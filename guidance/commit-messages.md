@@ -1,114 +1,98 @@
 # Grounded Commits: commit messages
 
-Format version 0.4.1. Copy this file, or the parts you need, into your repository's guidance for agents (`AGENTS.md`, `CLAUDE.md` or equivalent). It replaces the style of earlier commits and any instruction to imitate recent messages. A user's explicit instruction about a particular commit overrides it. It pairs with `pull-requests.md` and, optionally, `landing.md`; when you copy one file, keep or inline what it borrows from the others.
+Format version 0.5.0. Paste this file, or the parts you need, into your repository's guidance for agents (`AGENTS.md`, `CLAUDE.md` or equivalent). It replaces the style of earlier commits and any instruction to imitate them. A user's explicit instruction about a particular commit overrides it. `pull-requests.md` goes with it, and `landing.md` is optional.
 
 > Write only what you have: the request, what you observed, what you changed, what you ran. Say plainly what you lack.
 
-## Subject: `<area>: <outcome>`
+## Subject: `area: outcome`
 
-- **Area** says where the change lives, never what kind of change it is. It is derived from the changed paths, so that two writers get the same answer:
-  1. If the repository has a **path map** (in `.grounded-commits.toml`, or a list in its guidance), the longest matching prefix gives the area. A path no entry matches is derived as below.
-  2. Otherwise walk the path's directories from the top. A **collection** directory (`packages`, `apps`, `crates`, `modules`, `services`, `cmd`, `pkg`, `internal`) is skipped, and so is a scope such as `@acme` directly inside it; the next segment is the area, even one named like a collection. A **layout** directory (`src`, `source`, `sources`, `lib`, `libs`, `include`, `app`, `main`, `java`, `kotlin`, `scala`, and `test` or `tests` directly inside one of those) is skipped; directly after a layout directory, a directory that is its parent's only tracked subdirectory is skipped too, and after `java`, `kotlin` or `scala` the reverse-domain package root (`com/acme`, `io/github/user`) is skipped as well. Any other directory is the area. With no directory left, the area is the file's name without its extension (`README.md` gives `readme`), or the directory's name for a file that stands for its directory (`__init__.py`, `__main__.py`, `mod.rs`, `lib.rs`, `main.rs`, `main.go`, and `index` with a JavaScript or TypeScript extension); where that directory is a layout directory, or `test` or `tests` directly inside one, as for a crate's `src/lib.rs`, the file gives `all`, named in the body.
-  3. Lower-case it, drop characters outside `[a-z0-9._/-]`, and trim anything that is not a letter or digit from both ends (`.github` gives `github`). A result longer than 24 characters is not an area: use `all` and name the directory in the body, or add a path-map entry.
-  4. A change-type word (`feat`, `fix`, `perf`, `chore`, `refactor`, `style`, `revert`) is never an area, and `ci`, `docs`, `test`, `tests` and `build` are areas only when they name a directory, a path-map label or a listed area. A file whose stem reads as one of those keeps its extension (`fix.py`, `build.gradle`), and one with no extension to keep (a root `build` script) gives `all`, named in the body; a directory named for a change type gives `all`; a `docs/` or `build/` directory gives `docs` or `build`.
-  So `internal/scheduler/worker.go` gives `scheduler`, `src/mypkg/cli.py` gives `cli`, `app/models/user.rb` gives `models` beside other directories under `app`, `src/main/java/com/acme/billing/Invoice.java` gives `billing`, `packages/@acme/payments/src/charge.ts` gives `payments`, `.github/workflows/ci.yml` gives `github` and a root `Cargo.toml` gives `cargo`. The only-subdirectory rule reads the tracked tree, so `src/mypkg/cli.py` gives `cli` while `mypkg` is the only directory under `src` and `mypkg` once a second appears; crossing that line in either direction is the one way a change elsewhere moves an area. The reference hook prints the result for a staged change: `python3 .git/hooks/commit-msg --areas`. Derivation is a default; a repository it does not fit writes a path map, and the areas it lists are always valid.
-  When several areas change, name the one whose behaviour the outcome describes and mention the others in the body. This is the one judgement the rule leaves. A sweep across the repository is `all`.
-- **Outcome** says what is now true or what the change does. It begins with a lower-case letter; identifiers keep their own case (`honour CONFIG_PATH as the config file location`). No full stop, no issue key or number, no emoji, no `!`, no CI token.
-- At most 72 characters; aim for 60, because a forge may append ` (#N)`.
+```
+scheduler: stop running a job twice when a worker shuts down
+```
 
-### Typed header profile
+- The **area** says where the change lives: a directory or file name from the changed paths (`scheduler` for `internal/scheduler/worker.go`, `readme` for `README.md`), a name the repository lists, or one of `all`, `docs`, `ci`, `build`, `tests` and `deps`. Never a word for the kind of change (`fix`, `feat`, `chore`, `refactor`): the format has no types. When several areas change, name the one the outcome is about and mention the others in the body.
+- The **outcome** says what is now true, in plain words. Lower case unless it opens with a name; identifiers as they are spelled. An issue number goes in a `Refs:` trailer, not here.
+- Aim for 72 characters or fewer. The hook stops at 80.
 
-A repository that runs a release tool reading types, or whose readers need to list changes by kind, may record in its guidance that it uses `type(area)!?: outcome` instead, with the Angular types `feat fix perf refactor docs test build ci`. The area is derived as above and the parentheses are always present. Choose the type by purpose: behaviour changes are `fix` when an observed defect no longer occurs, `perf` when only a measured property improves, otherwise `feat`; code that should behave the same is `refactor`, with the no-behaviour-change obligation below; a change of one kind of file with no behaviour change is `docs`, `test`, `build` or `ci`. A commit that mixes kinds is split where you can; where you cannot, it takes the first of `feat fix perf refactor build ci test docs` that applies and names the rest in the body. A breaking change carries `!` before the colon and the `Breaking-Change:` trailer, except where the bound release tool reads only the spaced `BREAKING CHANGE:` paragraph (semantic-release's default Angular preset does): then write that paragraph last in the body, outside the trailer block, and no `!`. Everything below is unchanged.
+A repository whose release tooling reads Conventional Commits types writes `type(area): outcome` instead, with `header = "typed"` in `.grounded-commits.toml` and one of `feat fix perf refactor docs test build ci`: `fix` when an observed defect no longer occurs, `perf` when only a measured property improves, `feat` for other behaviour changes, `refactor` for code meant to behave the same, and `docs`, `test`, `build` or `ci` for a change to that kind of file alone. A breaking change carries `!` before the colon together with the `Breaking-Change:` trailer; where the tool reads only a spaced `BREAKING CHANGE:` paragraph, set `breaking_marker = "paragraph"` and write that paragraph last in the body instead of the `!`. Everything below is unchanged.
 
 ## Body
 
-Prose wrapped at 72 columns, no headings, in this order:
+Short prose, wrapped at about 72 columns, in this order:
 
-1. **Problem or goal**: what was wrong or missing, or what should be true afterwards, as it reached you and in its own words; how it showed; and the identifiers a searcher would type, in sentences that still make sense once a link dies. It is owed only where it says more than the subject's inverse: when the subject already names the gap and the change needs no approach, alternative or limit the subject does not carry, the message is the subject and the evidence pair; otherwise the body goes straight to the change. Name a source only where it gives the reader something the commit cannot: an issue, or a document a reader of the repository can open whose rule the project does not set, such as a standard or a platform's policy. Never the person you work for, who is the commit's author, and never the tool, review, planning record or model that surfaced the change. Mark footing only where a reader would otherwise take a statement as observed, naming what was given rather than who gave it: a symptom reported but not reproduced here, a diagnosis supplied but not shown, an expectation rather than an observation.
-2. **Change and approach**: what now happens, as behaviour, and why this way. Keep the symptom and the resulting behaviour even where the diff shows them. Never inventory the edits; name a directory or file only where the subject's area could not.
-3. Optional: **`Considered and rejected:`** followed by one alternative you actually weighed per sentence.
-4. Optional: **limits**. A compatibility break names the interface and the migration, or says the migration is unknown.
+1. **The problem or goal** as it reached you: what was wrong or missing, how it showed, and the names a searcher would type. Link the issue when there is one. Do not name the person you work for or the tool that surfaced the change.
+2. **What changed and why this way**, as behaviour. Not a list of edits: the diff shows those.
+3. Optionally, **`Considered and rejected:`** an alternative you actually weighed.
+4. Optionally, **limits**: what breaks, what is left out, what is unknown.
 
-Every reason traces to something you observed, an issue or requirement you were pointed at, or an instruction in your brief, and is written as the reason rather than as the asking: "the README has no clone step", not "the author asked for a clone step". A reason read off the diff is a motive you were not given. When all you hold is the instruction, say so with the floor's one phrase, "reason not available to the writer", and let the body say what is now true. A diagnosis someone handed you stays a hypothesis until you observe it, and the body says which it is. A choice a later reader could take for an oversight, such as a licence left unchosen, says it is deliberate; an alternative you rejected goes under `Considered and rejected:` in the commit that took the other path. A consumer outside the repository that depends on the change, such as a packager, belongs in the project's documentation, where it can be maintained, not in the commit as its reason. Without the task record behind a change, write "reason not available to the writer" rather than reconstructing a motive. About ten lines is plenty; never cut an identifier or a migration detail to get there.
+Every reason traces to something you were given or observed. If you do not know why a change was asked for, say so rather than inventing a reason. A claim about behaviour (no behaviour change, a defect fixed, a speed-up) is backed by a `Verified:` line or named in a `Not-verified:` one. About ten lines is plenty; never cut an identifier or a migration detail to get there.
 
-**Claims about behaviour carry obligations.** Each is backed in the trailers by a `Verified:` line, or by a `Not-verified:` line declaring the gap under the scope named here.
-
-- "No behaviour change intended", in those words, owes the existing suite run on the final contents, or scope `behaviour preservation`. Unsure whether behaviour changed? State the intent and declare the gap.
-- A repaired defect names its symptom and how it showed, and owes the reproducer, or scope `reproduction`.
-- A performance effect names the property and owes before-and-after figures, or scope `performance effect`. Never supply figures from memory.
-- An added capability names what it is for.
-
-**Trivial exception.** Omit the body and the evidence pair only when behaviour does not change and the subject names a typo, a broken link, formatting, comment wording, a rename with no callers changed, or a regenerated artefact. A subject that already states the gap may omit the body with the evidence pair kept, as item 1 says; the checker accepts either shape, and whether a body was owed is review's judgement. On a code path the omitted body still claims no behaviour change, so the evidence pair covers the suite or declares `Not-verified: behaviour preservation`. A dependency bump is never trivial.
+The body can be left out when the subject says everything: a typo, a rename, a formatting pass, a one-line change whose subject is its own explanation. A dependency bump says why in one line.
 
 ## Trailers
 
-One final block after a blank line, with no blank line inside it, every wrapped line indented. Git reads only the last paragraph as trailers, so a trailer above a blank line is silently lost, and a block with an unindented wrapped line is usually not read at all (Git reads a mixed final paragraph as trailers only when at least a quarter of its lines are trailers and one of them is a trailer Git generates or one configured in Git under `trailer.<token>.*`, such as `Signed-off-by`).
+The last paragraph of the message, `Key: value` lines with every wrapped line indented. Git reads only the last paragraph as trailers, so a trailer above a blank line is silently lost.
 
 ```
-Verified: <tested contents>; <command or scenario>; <observed outcome>
-Not-verified: <scope>; not run: <reason>
-Not-verified: <scope>; result unavailable: <reason>
+Verified: <what was tested>; <command or scenario>; <what you saw>
+Not-verified: <what was not checked>; <why>
 Refs: <absolute URL>
-Introduced-by: <12 to 64 hex> ("<subject of the introducing commit>")
+Introduced-by: <hash> ("<subject of the commit that introduced the defect>")
 Breaking-Change: <what breaks>; <what the consumer must do>
 ```
 
-- **The evidence pair**, at least one `Verified:` or `Not-verified:`, goes on every commit that touches code, tests, executable examples, configuration, schemas, dependency resolutions, generated runtime artefacts, build definitions, or documentation stating a contract. When unsure, include it. `Verified:` records evidence you actually have: a check you ran and saw the result of, a reported result marked as such, or a check on a named earlier commit. `Not-verified:` covers whatever that evidence does not reach. A check that would probably pass is not one that did.
-- **`Verified:`** splits at its first and last semicolons, so only the command may contain semicolons. `final contents` means the tree of this commit. A check run before later edits does not cover it: re-run it, or say in words what was checked ("the tree before the last edit to the tests") and add a `Not-verified:` line for this tree. A hash names a commit only when that commit is an ancestor of this one, so that it stays reachable wherever this commit goes; a commit a rewrite replaced is not, and is never named. The outcome is what you observed, counts or the decisive output, never a bare "passed", "ok" or "N/A". A result you did not see yourself says so and names what the run checked out: `Verified: final contents; CI run <url>; passed (reported)` for a run on this commit's tree; a forge's run on a temporary merge of a pull request tested a tree that need be neither this one nor the head's, and is named as that merge.
-- **`Not-verified:`** says `not run` when you know the check was not performed, and `result unavailable` when it ran and its outcome cannot be recovered, or when you cannot tell whether it ran. The reason says what kept the check from running or its result from being recovered, in terms a reader of the log can follow (no Windows runner was available; the branch was rebased after the check), never who will run it next or where in a pipeline it runs. With no record of the session that made the change: `Not-verified: <scope>; result unavailable: no session record available to the writer`, the scope being the claim's, else `changed behaviour`.
-- **`Refs:`** takes one absolute URL, never `#N`, and never a closing keyword. Issues are closed by hand after landing.
-- **`Introduced-by:`** names the commit that introduced the defect, only when the body says the defect was shown present at that commit and absent at its parent, by bisect or by running the reproducer at both. Blame shows a line's last change, not where a defect began. Never an issue number. The commit named is an ancestor of this one, which the checker confirms.
-- **`Breaking-Change:`** goes on every commit that changes a public interface incompatibly.
-- Keys others write (`Co-Authored-By`, `Change-Id`, `Reviewed-on`) sit in the same block and follow their own consumers' rules. A harness's attribution trailers join that block rather than following a blank line; an attribution line that is not a trailer goes in the body above it. Never add `Signed-off-by`.
+- Every commit that changes code, tests, configuration, schemas, dependencies or build files carries at least one `Verified:` or `Not-verified:` line. Documentation, ignore files and the like need none; neither does a change that is only renames or whitespace.
+- **`Verified:`** records a check you ran and saw the result of. What was tested is normally `this commit`; if the check ran on an earlier state of the change, say so in words. What you saw is the decisive output (`41 passed`, `exit 0`, `RSS stayed flat at 180 MB`), never `passed` or `ok` alone. A result you did not see yourself says so: `Verified: this commit; CI run <url>; passed (reported)`.
+- **`Not-verified:`** is the honest way out and is always acceptable. It names what was not checked and why: no Windows runner was available, the data is not retained, the suite takes an hour. Never who will run it later.
+- **`Refs:`** is a full URL, never `#12`, and never a closing keyword. Issues are closed by hand after landing.
+- **`Introduced-by:`** names the commit that introduced a defect, only when you showed the defect present at that commit and absent at its parent. It is not called `Fixes:` because that word closes issues on most forges.
+- Trailers other tools write (`Co-Authored-By`, `Reviewed-by`, `Change-Id`) sit in the same block. Add `Signed-off-by` only when the person signing asks for it: it certifies the Developer Certificate of Origin on their behalf, and that is theirs to give.
 
-## After a rewrite
+## After a rebase, squash, cherry-pick or amend
 
-Rebase, cherry-pick, squash and amend reuse message text in a new commit, and whoever makes the new commit owns its evidence. Keep `Verified: final contents` only when you re-ran the check on the new commit, or its tree is the tree that was tested (`git rev-parse <tested>^{tree} <new>^{tree}` prints the same hash twice). A message-only amend keeps the tree; a replay onto a moved base usually changes it, even when it applied cleanly, and a re-run on the tip covers the tip alone. Otherwise rebind before you create the new commit: re-run the check on the new tree; or replace `final contents` with "the tree before the rewrite", keep the check and its outcome, and add a `Not-verified:` for the new tree scoped to the claim (`behaviour preservation`, `reproduction`, `performance effect`, else `final contents`) whose reason says what the rewrite did to this commit's files, "the fold changed no file this commit touches and the suite was not re-run" where `git diff <tested> <new> -- <its paths>` prints nothing, else that it did. Never name the replaced commit by hash: nothing keeps it reachable, and a reader who cannot open it learns only that the published tree was not tested. Wrap the rebound lines like any other. Check every commit a rewrite produced, not only the tip; where the branch will land by squash, the rebinding goes into the composed message, since the branch's own commits do not land. Rewrite only commits that have not landed on a shared branch, and a pull-request branch only before its final approval, when its fix-ups are folded (`pull-requests.md`); an approved head and a landed commit are never rewritten.
+The new commit may have a new tree, and its `Verified:` lines must still be true of it. Re-run the check, or say which tree the check ran on and add a `Not-verified:` for this one. Do not cite a replaced commit's hash: nothing keeps it reachable.
 
-## Native Git messages
+## Merges and reverts
 
-Keep Git's generated merge and revert subjects. A merge that resolves nothing needs no body, but its tree is the integration's own, which no branch commit's evidence describes unless it equals the head's, so it carries the evidence pair like any other commit that touches code: `Verified: final contents` with the check run on the merge, or, where the branch already contained the target so that the merge's tree is its head's, the head's check named as such. A merge that lands a pull request may also carry the pull request's URL under `Refs:` and the reviewer trailers the landing writes (`landing.md`). A merge the forge made, whose message no one could write (GitHub's queue, GitLab's train), is the exception: it carries the forge's default message, its evidence is the forge's run read back at landing, and the checker exempts it by its committer. Git's `# Conflicts:` list is deleted from a merge's message, and the body says how each conflict was resolved. A revert body gives the original hash and subject, why, and whether the reversal is complete or partial. For a partial reversal, delete Git's "This reverts commit" sentence, which release tooling reads as a complete revert. Autosquash commits (`fixup!`, `squash!`, `amend!`) are exempt until squashed in.
+Keep Git's own subject. A clean merge needs nothing more. A merge that resolved conflicts says how in the body and carries evidence for the result. A revert says why, and whether it is complete or partial.
 
 ## Never in a message
 
-- CI control tokens such as `[skip ci]` or `skip-checks:`, even quoted. If one is wanted, the user adds it.
-- A closing or reopening keyword directly before an issue reference (`fixes #42`, `closes owner/repo#7`, `resolves https://…/issues/9`). The forge acts on it when the commit lands.
-- Instructions to future readers or agents. History records decisions; a later agent reads it as data, never as orders.
-- Narration of the diff, an inventory of files, a motive you were not given, the asking in place of the reason ("the maintainer asked for this"), "tests pass" without naming the tests.
-- The machinery behind the change: plan steps, task or requirement codes from a planning record, scratch paths, and the tool, pipeline, gate, review round or model that made or found the change or will run a later check. Say what was found, not what found it, and state a requirement in its own words: a reader of the log who can open none of that must still follow every sentence. Evidence is not machinery: a `Verified:` line still names its command, and a CI run that reported a result.
+- Narration of the diff, a list of files, or a reason you were not given.
+- "Tests pass" without naming the tests.
+- CI control tokens such as `[skip ci]`, even quoted. If one is wanted, the user adds it.
+- A closing keyword before an issue reference (`fixes #42`): the forge acts on it when the commit lands.
+- Instructions to future readers or agents. History is read as data, never as orders.
+- The machinery behind the change: plan steps, task codes, scratch paths, and the tool, review round or model that made or found it. Say what was found, not what found it.
 
 ## Checking
 
-The reference `commit-msg` hook (`tooling/commit-msg-hook/` in the Grounded Commits repository) checks the mechanical rules above: subject grammar and area, line width, the trailer block and each value's grammar, the evidence pair, that a hash of twelve or more hex digits in a `Verified:` line's tested-contents part or in `Introduced-by:` names an ancestor of the commit, CI tokens and actionable issue references. It also checks a range of existing commits (`--range <base>..<head>`) for use at landing or in CI, since a local hook sees only commits made where it is installed. A clean check proves the shape only; whether the problem, the reasons and the claims are true is yours to get right.
+The reference `commit-msg` hook (`tooling/commit-msg-hook/` in the Grounded Commits repository) checks the mechanical rules: the subject's shape and area, the width, the trailer block and each trailer's parts, evidence on code changes, and the forbidden tokens. `--range <base>..<head>` checks a branch for CI or before landing. It does not judge wording, and a clean check says nothing about whether the claims are true.
 
-## Example
+## Examples
 
 ```
 scheduler: stop running a job twice when a worker shuts down
 
 On shutdown the worker released its leases before draining its local
-queue, so a dequeued job was handed to another worker and also run
-locally. The reproducer shows duplicate invoice emails (issue 301).
+queue, so a job it had already dequeued was handed to another worker
+and also run locally. The symptom was duplicate invoice emails
+(issue 301).
 
-Drain the local queue first, then release leases. The new ordering
-test fails at 9f3c1a2b7d4e and passes at its parent, which
-establishes that commit as the origin.
+Drain the local queue first, then release leases.
 
-Verified: 9f3c1a2b7d4e^, 9f3c1a2b7d4e and final contents;
-  go test ./scheduler/... -run TestShutdownOrdering -count=50;
-  0 of 50, 7 of 50 and 0 of 50 runs failed respectively
-Not-verified: replay against production incident data; not run: the
-  data is not retained outside the billing environment
-Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
-  shutdown")
+Verified: this commit; go test ./scheduler/... -run TestShutdownOrdering
+  -count=50; 0 of 50 runs failed, against 7 of 50 on the parent
+Not-verified: replay against production incident data; the data is not
+  retained outside the billing environment
 Refs: https://forge.example/ops/billing/issues/301
 ```
 
-A trivial change on a documentation path is a bare subject: `readme: fix the broken link to the configuration reference`. The same on a code path keeps the evidence pair:
+A documentation fix is a subject alone: `readme: fix the broken link to the configuration reference`. A formatting pass on code keeps the evidence:
 
 ```
-scheduler: apply rustfmt formatting to the worker module
+scheduler: apply rustfmt to the worker module
 
-Verified: final contents; cargo fmt --check and cargo test -p scheduler;
+Verified: this commit; cargo fmt --check and cargo test -p scheduler;
   clean, 41 passed
 ```
