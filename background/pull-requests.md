@@ -197,18 +197,19 @@ Notation: `B` is the base tip, `H` the approved head, `C` an integration candida
 
 ### In short
 
-Never rewrite reviewed commits. Land a checked integration candidate: a merge
-commit `C = merge(B, H)`, built before landing, checked as the object that
-will land, carrying its own evidence, and then landed by advancing the base to
-exactly `C`. A rewrite gives commits new trees and loses their signatures
-[GIT2][CONV], and a merge of a stale branch made at landing time lands a
-tree nobody checked. On GitHub that means merge commits only,
-through a merge queue where one is available and with the up-to-date rule
-where not; on Forgejo, the fast-forward-only style with the candidate staged
-on the pull-request branch; on GitLab, the fast-forward method with the same
-staged candidate, or merge trains on a busy licensed project. These are policy
-recommendations resting on Git's behaviour and the forges' mechanisms, not
-measured productivity rankings.
+Never rewrite reviewed commits. A current branch, whose head already
+contains the base, fast-forwards: the landed tree is the head's, which the
+head's own checks cover. A branch that is behind lands through a checked
+merge: a merge commit `C = merge(B, H)`, built before landing, checked as the
+object that will land, carrying its own evidence, and landed by advancing the
+base to exactly `C`. A rewrite gives commits new trees and loses their
+signatures [GIT2][CONV], and a merge of a stale branch made at landing time
+lands a tree nobody checked. On GitHub that means merge commits, with the
+up-to-date rule or a merge queue; on Forgejo, the fast-forward-only style,
+bringing a behind branch current by merging the base into it; on GitLab, the
+fast-forward method the same way, or merge trains on a busy licensed project.
+These are policy recommendations resting on Git's behaviour and the forges'
+mechanisms, not measured productivity rankings.
 
 ### What each method does
 
@@ -279,7 +280,7 @@ Forgejo has no merge queue: `merge_when_checks_succeed` schedules a merge; at sc
 Each conclusion is labelled **measurement** (observed in a public repository), **mechanism** (Git's behaviour, or a forge's documented or source-level behaviour) or **opinion**.
 
 1. **A landing of a behind-base branch produces a tree nobody checked unless the merged result itself was checked.** Mechanism: merge, squash, rebase and fast-forward-after-rebase give the same final tree, different from any branch commit's, and a clean merge of two separately passing sides can fail its check (the capacity case above).
-2. **A rewrite costs, per commit, a re-check or a declared gap, a re-signature where the repository signs, and a rebinding; a merge commit or a fast-forward costs none of these.** Mechanism [CONV][GIT2]: `final contents` is bound to the tree. A replay onto a changed base gives every replayed commit a new tree although its patch-id is unchanged; a replay onto a base whose tree did not change keeps the tree and loses only the signature; and a content-changing base can also leave a replayed tree equal, so no rule replaces the comparison. The convention requires each replayed commit's claim re-established by comparison, re-run or dropped, not only the tip's, and demands no full-suite run where the tree test passes; identity and signature change on every replay regardless.
+2. **A rewrite costs, per commit, a re-check or a declared gap, a re-signature where the repository signs, and a rebinding; a merge commit or a fast-forward costs none of these.** Mechanism [CONV][GIT2]: a `Verified:` line is bound to the tree it names. A replay onto a changed base gives every replayed commit a new tree although its patch-id is unchanged; a replay onto a base whose tree did not change keeps the tree and loses only the signature; and a content-changing base can also leave a replayed tree equal, so no rule replaces the comparison. The convention requires each replayed commit's claim re-established by re-run or its gap declared, not only the tip's; identity and signature change on every replay regardless.
 3. **Rewrites discard signatures and no forge restores the authors'.** Mechanism and measurement: GitHub cannot sign rebased commits [GH9] and signs squashes with its own key [OBS3]; Forgejo's replay requests no signature [FJ5]; GitLab's rebase "removes GPG signatures" [GL1]; GitHub's stack rebase "generates signed commits", GitHub's [GH15]. Merge, fast-forward and direct push keep them [GIT1][FJ6][FJ12].
 4. **Squash with a concatenated message destroys the trailer record, not only the granularity.** Mechanism [GIT7][OBS6]: a concatenated message has one parsed trailer block, its final paragraph; the others become body text, and an attribution paragraph appended after a blank line leaves only itself parsed. A deliberately composed squash avoids this; the forge defaults do not.
 5. **Only a landing that lands the checked object is race-free; forge currency rules are not.** Mechanism: GitHub's queue builds and checks the group head and, in the two observed squash cases, landed it as the same SHA [GH4][OBS5], other paths unobserved; Forgejo's fast-forward-only refuses unless the base is an ancestor and its push is not forced [FJ6][FJ1]; GitLab's fast-forward locks the target [GL13]. Forgejo's outdated rule reads a counter refreshed asynchronously after base pushes [FJ9], and GitHub's strict rule's evaluation timing is undocumented [GH21]. The window is small (*opinion*), but it is the difference between a guarantee and a probability. Polling the base and then calling a head-guarded merge leaves a time-of-check, time-of-use gap on every forge [GH6][FJ14][GL5].
@@ -295,10 +296,9 @@ Each conclusion is labelled **measurement** (observed in a public repository), *
 ### What this means for the commit format
 
 - **The body is a review brief and never enters history; the pull request's
-  identity should.** Readers retrieve by it, the forges put it in merge
-  subjects [GH10][FJ1][GL6], and the format expects a forge-appended `(#N)`
-  [CONV]. The integration commit's trailer block carries the pull request's
-  URL.
+  identity should.** Readers retrieve by it, and the forges put it in merge
+  subjects [GH10][FJ1][GL6]. A merge commit that lands a pull request carries
+  its URL under `Refs:`.
 - **The landed tree needs evidence of its own.** A merge that resolves no
   conflict can still fail a check both sides passed, so the
   integration commit carries a `Verified:` line for its own tree. `Verified:
@@ -333,8 +333,8 @@ Each conclusion is labelled **measurement** (observed in a public repository), *
   on the branch before approval. Always making the merge gives one
   first-parent node per pull request and one place for the URL and the
   integration's evidence without touching a reviewed commit. No measurement
-  decides between them; the guidance makes the merge by default and lets a
-  repository declare fast-forward.
+  decides between them; the guidance fast-forwards a current branch and
+  builds the merge only for one that is behind.
 - **Forgejo fork heads the agent cannot push to.** Landing a current fork
   head with the merge style and "Block merge if pull request is outdated"
   leaves a window: the rule reads a count refreshed in a goroutine after the
@@ -378,7 +378,7 @@ Each conclusion is labelled **measurement** (observed in a public repository), *
 
 ### Sources (part two)
 
-- [CONV] [`guidance/commit-messages.md`](../guidance/commit-messages.md), format 0.3.3: `Verified: final contents` binds to the tree; "After a rewrite"; "Keep Git's generated merge … subjects; a merge that resolves nothing needs no body"; subjects aim for 60 characters "because a forge may append ` (#N)`"; `Refs:` takes an absolute URL, never `#N`.
+- [CONV] [`guidance/commit-messages.md`](../guidance/commit-messages.md), format 0.5.0: a `Verified:` line names the tree it tested, "normally `this commit`"; "After a rebase, squash, cherry-pick or amend"; "Keep Git's own subject. A clean merge needs nothing more"; subjects "aim for 72 characters or fewer"; `Refs:` "is a full URL, never `#12`".
 - [GH1] https://docs.github.com/en/pull-requests/reference/pull-request-merges and its reusables `default_merge_option.md`, `squash_and_merge_summary.md`, `rebase_and_merge_summary.md` under https://raw.githubusercontent.com/github/docs/main/data/reusables/pull_requests/ (a moving branch): `--no-ff`; squash fast-forwarded; rebase "always updates the committer information and creates new commit SHAs", drops empty commits; indirect merges.
 - [GH2] https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches and https://raw.githubusercontent.com/github/docs/main/data/reusables/repositories/required-signed-commits.md: strict checks; "pushed directly to the protected branch"; linear history; unsigned head commits block a squash; a locally merged commit "may also need bypass permissions" when a pull request is required.
 - [GH3] https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets: linear history; merge-queue settings; signed commits; "Require a pull request" (must be opened); dismiss stale approvals.

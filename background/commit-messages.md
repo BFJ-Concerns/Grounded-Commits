@@ -486,8 +486,8 @@ either way.
 - **A mandatory area or an optional one.** For mandatory: retrieval selects
   lexically first, and one rule keeps writers consistent. For optional:
   choosing an area is a classification nobody has validated. The format
-  makes it mandatory, with derivation and `all` as the fallback; picking the
-  focal area of a multi-area change remains a judgement.
+  makes it mandatory, taken from the changed paths with `all` as the
+  fallback; picking the focal area of a multi-area change remains a judgement.
 - **Verification as trailers or prose.** Trailers are the only form Git can
   check for presence and extract, and a value grammar makes filler visible.
   Prose is enough where no bulk audit happens. The format uses trailers; how
@@ -495,7 +495,7 @@ either way.
 - **A hard 72-character subject or a soft budget.** The hard cap is the
   cheapest check against documented displays; those displays set no
   universal threshold, and an indispensable identifier may need to overrun.
-  The format sets 72 hard, aiming for 60.
+  The format aims for 72 and the hook stops at 80.
 - **A breaking-change trailer always, or the consumer's marker only.** The
   conventionalcommits preset reads `Breaking-Change:`; Angular's does not.
   The format keeps the trailer and adds the parser's marker under the typed
