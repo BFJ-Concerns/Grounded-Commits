@@ -10,8 +10,8 @@ the record, and nobody has to learn a procedure to write a subject.
   label, a listed area, or one of `all`, `docs`, `ci`, `build`, `tests` and
   `deps`. The derivation procedure, with its lists of collection and layout
   directories, its only-subdirectory rule and its 24-character cap, is
-  gone. Only the change-type words (`fix`, `feat`, `chore` and the like)
-  are refused.
+  gone. A change-type word (`fix`, `feat`, `chore` and the like) is never
+  an area.
 - The hook no longer judges the outcome's wording: a capital, a digit, a
   `!`, a full stop, an emoji or an issue number in the subject passes. It
   no longer asks for a body or forbids headings. A trailer key in another
