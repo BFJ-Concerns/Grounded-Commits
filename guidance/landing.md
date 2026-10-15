@@ -1,6 +1,6 @@
 # Grounded Commits: landing
 
-Format version 0.4.0. This part is optional: the commit and pull-request conventions work under any merge method. What is not optional is knowing what your method does to the commits, because they are the record: their messages, the trees their evidence lines describe, and their signatures. This document says what each method does and how to land so that what reaches the target is what was reviewed and checked.
+Format version 0.4.1. This part is optional: the commit and pull-request conventions work under any merge method. What is not optional is knowing what your method does to the commits, because they are the record: their messages, the trees their evidence lines describe, and their signatures. This document says what each method does and how to land so that what reaches the target is what was reviewed and checked.
 
 ## What landing has to preserve
 
