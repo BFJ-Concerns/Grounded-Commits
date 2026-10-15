@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Fixtures for the Grounded Commits reference hook.
 
-Each case names the changed paths, the tracked files that stand in for the
-repository (defaults to the changed paths), the message, and either "clean" or
-a fragment every finding list must contain. Run: python3 test_fixtures.py
+Each case names the changed paths, the message, and either "clean" or a
+fragment every finding list must contain. Run: python3 test_fixtures.py
 """
 
 import importlib.machinery
@@ -18,55 +17,34 @@ hook = importlib.util.module_from_spec(spec)
 loader.exec_module(hook)
 
 DEFAULT = dict(hook.DEFAULT_CONFIG)
-GO = ["internal/scheduler/worker.go", "internal/scheduler/lease.go", "internal/api/handler.go",
-      "cmd/server/main.go", "go.mod", "README.md"]
-PY_FLAT = ["mypkg/__init__.py", "mypkg/scheduler.py", "mypkg/cli.py", "mypkg/config.py",
-           "tests/test_scheduler.py", "pyproject.toml", "README.md"]
-PY_SRC = ["src/mypkg/__init__.py", "src/mypkg/scheduler.py", "src/mypkg/cli.py", "tests/test_cli.py", "README.md"]
-RAILS = ["app/models/user.rb", "app/models/invoice.rb", "app/controllers/users_controller.rb",
-         "config/routes.rb", "Gemfile", "README.md"]
-DJANGO = ["myproject/settings.py", "myproject/billing/models.py", "myproject/billing/views.py",
-          "myproject/auth/models.py", "manage.py", "README.md"]
-MAVEN = ["src/main/java/com/acme/billing/Invoice.java", "src/main/java/com/acme/auth/Login.java",
-         "src/test/java/com/acme/billing/InvoiceTest.java", "pom.xml", "README.md"]
-MONOREPO = ["packages/web/src/index.ts", "packages/@acme/payments/src/charge.ts", "apps/cli/main.ts",
-            "docs/payments.md", "package.json"]
+GO = ["internal/scheduler/worker.go"]
+EV = "Verified: this commit; go test ./...; ok 12 packages\n"
+LONG = "x" * 51
 
 SCHEDULER = """scheduler: stop running a job twice when a worker shuts down
 
 On shutdown the worker released its leases before draining its local
-queue, so a dequeued job was handed to another worker and also run
-locally. The reproducer shows duplicate invoice emails (issue 301).
+queue, so a job it had already dequeued was handed to another worker
+and also run locally. The symptom was duplicate invoice emails
+(issue 301).
 
-Drain the local queue first, then release leases. The new ordering
-test fails at 9f3c1a2b7d4e and passes at its parent, which
-establishes that commit as the origin.
+Drain the local queue first, then release leases.
 
-Verified: 9f3c1a2b7d4e^, 9f3c1a2b7d4e and final contents;
-  go test ./scheduler/... -run TestShutdownOrdering -count=50;
-  0 of 50, 7 of 50 and 0 of 50 runs failed respectively
-Not-verified: replay against production incident data; not run: the
-  data is not retained outside the billing environment
-Introduced-by: 9f3c1a2b7d4e ("scheduler: release leases eagerly on
-  shutdown")
+Verified: this commit; go test ./scheduler/... -run TestShutdownOrdering
+  -count=50; 0 of 50 runs failed, against 7 of 50 on the parent
+Not-verified: replay against production incident data; the data is not
+  retained outside the billing environment
 Refs: https://forge.example/ops/billing/issues/301
 """
 
-SCOPED = ["@acme/payments/src/charge.ts", "@acme/web/src/index.ts", "package.json"]
-TYPED_BREAK = ("feat(api): drop the v1 endpoint\n\nThe v1 endpoint is retired.\n\n"
-               "Verified: final contents; go test ./...; ok 12 packages\n"
-               "Breaking-Change: the v1 endpoint is gone; call v2\n")
+TYPED_BREAK = ("feat(api): drop the v1 endpoint\n\nThe v1 endpoint is retired.\n\n" + EV
+               + "Breaking-Change: the v1 endpoint is gone; call v2\n")
 TYPED_BREAK_PARAGRAPH = ("feat(api): drop the v1 endpoint\n\nThe v1 endpoint is retired.\n\n"
-                         "BREAKING CHANGE: the v1 endpoint is gone; call v2.\n\n"
-                         "Verified: final contents; go test ./...; ok 12 packages\n"
-                         "Breaking-Change: the v1 endpoint is gone; call v2\n")
+                         "BREAKING CHANGE: the v1 endpoint is gone; call v2.\n\n" + EV
+                         + "Breaking-Change: the v1 endpoint is gone; call v2\n")
 TYPED_REVERT = ('Revert "api: drop the v1 endpoint"\n\nThis reverts commit 1234567890ab ("api: drop the v1\n'
-                'endpoint") in full: clients still call v1.\n\n'
-                "Verified: final contents; go test ./...; ok 12 packages\n"
-                "Breaking-Change: the v1 endpoint returns; clients on v2 are unaffected\n")
-
-EV = "Verified: final contents; go test ./...; ok 12 packages\n"
-LONG = "x" * 51
+                'endpoint") in full: clients still call v1.\n\n' + EV
+                + "Breaking-Change: the v1 endpoint returns; clients on v2 are unaffected\n")
 TYPED_BREAK_SOLE = ("feat(api): drop the v1 endpoint\n\nBREAKING CHANGE: the v1 endpoint is gone; call v2.\n\n"
                     + EV + "Breaking-Change: the v1 endpoint is gone; call v2\n")
 TYPED_BREAK_EMPTY = ("feat(api): drop the v1 endpoint\n\nThe v1 endpoint is retired.\n\nBREAKING CHANGE:\n\n"
@@ -75,221 +53,187 @@ TYPED_BREAK_EARLY = ("feat(api): drop the v1 endpoint\n\nBREAKING CHANGE: the v1
                      "The v1 endpoint is retired.\n\n" + EV + "Breaking-Change: the v1 endpoint is gone; call v2\n")
 
 CASES = [
-    # name, paths, tracked, message, expectation (clean | fragment), config overrides
-    ("compact form: a subject that states the gap plus the evidence pair passes", ["internal/api/handler.go"], GO,
-     "api: reject requests whose body exceeds the declared length\n\n" + EV, "clean", {}),
-    ("compact form: no body and no evidence is a missing body", ["internal/api/handler.go"], GO,
-     "api: reject requests whose body exceeds the declared length\n", "body is missing", {}),
-    ("an outcome that begins with a digit is flagged", ["internal/api/handler.go"], GO,
-     "api: 123 requests per second\n\nBody.\n\n" + EV, "begins with a digit", {}),
-    ("a changed file's name may open the outcome in its own case", ["Dockerfile"], ["Dockerfile", "README.md"],
-     "dockerfile: Dockerfile builds the image from alpine\n\nBody.\n\n" + EV, "clean", {}),
-    ("a long token excuses only itself, not the prose around it", ["internal/api/handler.go"], GO,
-     "api: log the request path\n\nThe path " + LONG + " is logged whenever a request arrives so that an operator can find it.\n\n" + EV,
+    # name, paths, message, expectation (clean | fragment), config overrides
+    ("the example message parses clean", GO, SCHEDULER, "clean", {}),
+    ("a subject and the evidence pair are enough on a code path", GO,
+     "scheduler: reject requests whose body exceeds the declared length\n\n" + EV, "clean", {}),
+    ("a code change with no evidence is flagged", GO,
+     "scheduler: reject requests whose body exceeds the declared length\n", "no `Verified:` or `Not-verified:`", {}),
+    ("a code change with a body but no evidence is flagged", GO,
+     "scheduler: renew leases before they expire\n\nLeases lapsed under load.\n", "no `Verified:`", {}),
+
+    # areas: anything on the changed paths, built-ins, the path map, the list
+    ("the deepest directory is an area", GO, "scheduler: renew leases\n\n" + EV, "clean", {}),
+    ("a shallower directory is an area too", GO, "internal: renew leases\n\n" + EV, "clean", {}),
+    ("the file's name without its extension is an area", GO, "worker: renew leases\n\n" + EV, "clean", {}),
+    ("a root file's name is an area", ["README.md"], "readme: fix the broken link to the configuration reference\n",
+     "clean", {}),
+    ("a dotfile's name is an area", [".github/workflows/ci.yml"],
+     "github: run tests on pull requests\n\nNot-verified: the workflow run; no runner locally\n", "clean", {}),
+    ("an area in another case is the same area", ["README.md"], "README: fix the broken link\n", "clean", {}),
+    ("all is always an area", GO, "all: first public version\n\n" + EV, "clean", {}),
+    ("docs is always an area", ["README.md"], "docs: fix the broken link\n", "clean", {}),
+    ("ci is always an area", [".github/workflows/ci.yml"],
+     "ci: run tests on pull requests\n\nNot-verified: the workflow run; no runner locally\n", "clean", {}),
+    ("deps is always an area", ["go.mod"], "deps: bump x/net to 0.30\n\n" + EV, "clean", {}),
+    ("tests is always an area", ["internal/scheduler/worker_test.go"], "tests: cover lease renewal\n\n" + EV, "clean", {}),
+    ("build is always an area", ["Makefile"], "build: add a lint target\n\n" + EV, "clean", {}),
+    ("a path-map label is an area", [".github/workflows/ci.yml"],
+     "actions: run tests on pull requests\n\nNot-verified: the workflow run; no runner locally\n", "clean",
+     {"area_map": {".github/": "actions"}}),
+    ("a path on the map still offers its own names", [".github/workflows/ci.yml"],
+     "workflows: run tests on pull requests\n\nNot-verified: the workflow run; no runner locally\n", "clean",
+     {"area_map": {".github/": "actions"}}),
+    ("a listed area is an area", GO, "billing: store amounts in pence\n\n" + EV, "clean", {"areas": ["billing"]}),
+    ("an area from nowhere is flagged with the candidates", GO, "api: renew leases\n\n" + EV,
+     "not a directory or file name from the changed paths", {}),
+    ("the candidates list the path's names and the built-ins", GO, "api: renew leases\n\n" + EV,
+     "`internal`, `scheduler`, `worker`, `all`", {}),
+    ("a change-type word is not an area", GO, "fix: renew leases\n\n" + EV, "what kind of change", {}),
+    ("a typed header is not accepted under the area profile", GO, "fix(scheduler): renew leases\n\n" + EV,
+     "what kind of change", {}),
+    ("a change-type directory is not an area", ["fix/patch.py"], "fix: apply the vendor patch\n\n" + EV,
+     "what kind of change", {}),
+    ("a file named for a change type keeps its extension", ["fix.py"],
+     "fix.py: handle an empty input file\n\n" + EV, "clean", {}),
+    ("an empty commit accepts any area", [], "release: mark the release point\n\nA tag anchor.\n", "clean", {}),
+
+    # the outcome is the writer's: no checks on its wording
+    ("an outcome may begin with a digit", GO, "scheduler: 3 retries before giving up\n\n" + EV, "clean", {}),
+    ("an outcome may begin with a capital", GO, "scheduler: Windows paths are honoured\n\n" + EV, "clean", {}),
+    ("an outcome may contain a bang", GO, "scheduler: reject `!=` in filter expressions\n\n" + EV, "clean", {}),
+    ("an outcome may end in a full stop", GO, "scheduler: renew leases.\n\n" + EV, "clean", {}),
+    ("an outcome may carry an issue number", GO, "scheduler: renew leases (#42)\n\n" + EV, "clean", {}),
+    ("a malformed subject is flagged", GO, "scheduler:renew leases\n\n" + EV, "must be `<area>: <outcome>`", {}),
+    ("the second line must be blank", GO, "scheduler: renew leases\nBody.\n\n" + EV, "second line must be blank", {}),
+
+    # width: a band, not a column
+    ("a 76-character subject passes", GO, "scheduler: " + "x" * 65 + "\n\n" + EV, "clean", {}),
+    ("an 81-character subject is flagged", GO, "scheduler: " + "x" * 70 + "\n\n" + EV, "keep it under 80", {}),
+    ("a 76-column body line passes", GO, "scheduler: renew leases\n\n" + "word " * 15 + "y\n\n" + EV, "clean", {}),
+    ("an 81-column body line is flagged", GO, "scheduler: renew leases\n\n" + "word " * 16 + "y\n\n" + EV, "columns", {}),
+    ("one long token excuses only itself", GO,
+     "scheduler: log the request path\n\nThe path " + LONG + " is logged whenever a request arrives so that an operator reading the log can find it again.\n\n" + EV,
      "columns", {}),
-    ("a line that is one long token and a few words passes", ["internal/api/handler.go"], GO,
-     "api: log the request path\n\nSee " + LONG + " for the path.\n\n" + EV, "clean", {}),
-    ("an issue number in the subject is flagged by default", ["internal/api/handler.go"], GO,
-     "api: close #42 by rejecting empty bodies\n\nBody.\n\n" + EV, "issue reference", {}),
-    ("a Refs value must be an absolute URL", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody.\n\n" + EV + "Refs: #42\n", "absolute http(s) URL", {}),
-    ("a heading in the body is flagged", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\n## Why\n\nBody.\n\n" + EV, "heading", {}),
-    ("the second line must be blank", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\nBody.\n\n" + EV, "second line must be blank", {}),
-    ("a manifest change is never trivial", ["pyproject.toml"], PY_SRC + ["pyproject.toml"],
-     "pyproject: fix typo in the description\n", "body is missing", {}),
-    ("typed, paragraph marker: a sole breaking paragraph is the body", ["internal/api/handler.go"], GO,
-     TYPED_BREAK_SOLE, "clean", {"header": "typed", "breaking_marker": "paragraph"}),
-    ("typed, paragraph marker: an empty breaking paragraph is flagged", ["internal/api/handler.go"], GO,
-     TYPED_BREAK_EMPTY, "empty", {"header": "typed", "breaking_marker": "paragraph"}),
-    ("typed, paragraph marker: the breaking paragraph must come last", ["internal/api/handler.go"], GO,
-     TYPED_BREAK_EARLY, "last paragraph", {"header": "typed", "breaking_marker": "paragraph"}),
-    ("a scope directory outside a collection is the area", ["@acme/payments/src/charge.ts"], SCOPED,
-     "acme: charge in minor units\n\nThe requirement is X.\n\nVerified: final contents; npm test; 4 passed\n", "clean", {}),
-    ("a scope directory outside a collection is not skipped", ["@acme/payments/src/charge.ts"], SCOPED,
-     "payments: charge in minor units\n\nThe requirement is X.\n\nVerified: final contents; npm test; 4 passed\n", "area", {}),
-    ("typed: a revert carrying Breaking-Change needs no !", ["internal/api/handler.go"], GO, TYPED_REVERT, "clean", {"header": "typed"}),
-    ("typed, paragraph marker: the trailer without the paragraph is flagged", ["internal/api/handler.go"], GO,
-     TYPED_BREAK, "BREAKING CHANGE", {"header": "typed", "breaking_marker": "paragraph"}),
-    ("typed, paragraph marker: trailer and paragraph together pass", ["internal/api/handler.go"], GO,
-     TYPED_BREAK_PARAGRAPH, "clean", {"header": "typed", "breaking_marker": "paragraph"}),
-    ("typed, paragraph marker: the paragraph without the trailer is flagged", ["internal/api/handler.go"], GO,
-     TYPED_BREAK_PARAGRAPH.replace("Breaking-Change: the v1 endpoint is gone; call v2\n", ""), "Breaking-Change",
-     {"header": "typed", "breaking_marker": "paragraph"}),
-    ("readme example parses clean", ["internal/scheduler/worker.go"], GO, SCHEDULER, "clean", {}),
-    ("go: area from internal/scheduler", ["internal/scheduler/lease.go"], GO,
-     "scheduler: renew leases before they expire\n\nThe requirement is X.\n\nVerified: final contents; go test ./...; ok 12 packages\n", "clean", {}),
-    ("go: internal is not an area", ["internal/scheduler/lease.go"], GO,
-     "internal: renew leases\n\nBody.\n\nVerified: final contents; go test ./...; ok 12 packages\n", "does not come from the changed paths", {}),
-    ("python flat: package is the area", ["mypkg/scheduler.py"], PY_FLAT,
-     "mypkg: retry on timeout\n\nBody.\n\nVerified: final contents; pytest -q; 14 passed\n", "clean", {}),
-    ("python src: wrapper and container skipped", ["src/mypkg/cli.py"], PY_SRC,
-     "cli: print the resolved path\n\nBody.\n\nVerified: final contents; pytest -q; 9 passed\n", "clean", {}),
-    ("rails: app is a wrapper", ["app/models/invoice.rb"], RAILS,
-     "models: total invoices in pence\n\nBody.\n\nVerified: final contents; bin/rails test; 40 runs, 0 failures\n", "clean", {}),
-    ("django: nested app yields the project package", ["myproject/billing/models.py"], DJANGO,
-     "myproject: store amounts in pence\n\nBody.\n\nVerified: final contents; manage.py test; 22 passed\n", "clean", {}),
-    ("django: a path map restores the app", ["myproject/billing/models.py"], DJANGO,
-     "billing: store amounts in pence\n\nBody.\n\nVerified: final contents; manage.py test; 22 passed\n", "clean",
-     {"area_map": {"myproject/billing/": "billing", "myproject/auth/": "auth"}}),
-    ("maven: test path gives the same area", ["src/test/java/com/acme/billing/InvoiceTest.java"], MAVEN,
-     "billing: cover half-up rounding\n\nBody.\n\nVerified: final contents; mvn test; 32 passed\n", "clean", {}),
-    ("maven: single domain still gives the domain", ["src/main/java/com/acme/billing/Invoice.java"],
-     ["src/main/java/com/acme/billing/Invoice.java", "src/main/java/com/acme/billing/Tax.java", "pom.xml"],
-     "billing: round totals half-up\n\nBody.\n\nVerified: final contents; mvn test; 31 passed\n", "clean", {}),
-    ("c++: include and src agree", ["include/acme/net/socket.hpp", "src/net/socket.cpp"],
-     ["include/acme/net/socket.hpp", "src/net/socket.cpp", "src/storage/db.cpp", "CMakeLists.txt"],
-     "net: reuse sockets across requests\n\nBody.\n\nVerified: final contents; ctest; 18 passed\n", "clean", {}),
-    ("root fix.py uses its full name", ["fix.py"], ["fix.py", "README.md"],
-     "fix.py: handle an empty input file\n\nBody.\n\nVerified: final contents; python3 fix.py empty.txt; exit 0\n", "clean", {}),
-    ("a directory over 24 characters is not an area", ["infrastructure-configuration-tools/a.tf"],
-     ["infrastructure-configuration-tools/a.tf", "infrastructure-configuration-tools/b.tf", "README.md"],
-     "infrastructure-configuration-tools: pin the provider\n\nBody.\n\nVerified: final contents; terraform validate; Success\n",
-     "at most 24 characters", {}),
-    ("configured issue key in subject", ["internal/api/handler.go"], GO,
-     "api: reject PROJ-42 requests\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "issue reference",
-     {"issue_keys": ["PROJ"]}),
-    ("key-shaped token without configured keys is an identifier", ["internal/api/handler.go"], GO,
-     "api: reject PROJ-42 requests\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "clean", {}),
-    ("identifiers with a hyphen and digits pass", ["internal/api/handler.go"], GO,
-     "api: hash UTF-8 bodies with SHA-256\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "clean", {}),
-    ("licence identifier in subject", ["LICENSE"], ["LICENSE", "README.md"],
-     "license: release under AGPL-3.0-or-later\n\nThe code is published under the AGPL so that hosted forks publish\ntheir changes.\n", "clean", {}),
-    ("configured key is caught beside an identifier", ["internal/api/handler.go"], GO,
-     "api: reject PROJ-42 bodies that are not UTF-8\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n",
-     "issue reference", {"issue_keys": ["PROJ"]}),
-    ("bang in outcome", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies!\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "does not belong", {}),
-    ("malformed subject does not crash", ["internal/api/handler.go"], GO,
-     "api:reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "must be `<area>: <outcome>`", {}),
-    ("unindented line inside a Git-recognised block", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...;\nok 12 packages\nSigned-off-by: x <x@y.z>\n",
-     "neither `Key: value` nor an indented continuation", {}),
-    ("typed profile: trailer without ! is flagged", ["internal/api/handler.go"], GO,
-     "feat(api): drop the v1 endpoint\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\nBreaking-Change: v1 is gone; call v2\n",
-     "go together", {"header": "typed"}),
-    ("typed profile, paragraph marker: ! is flagged", ["internal/api/handler.go"], GO,
-     "feat(api)!: drop the v1 endpoint\n\nBody.\n\nBREAKING CHANGE: v1 is gone; call v2\n\nVerified: final contents; go test ./...; ok 12\n",
-     "spaced `BREAKING CHANGE:`", {"header": "typed", "breaking_marker": "paragraph"}),
-    ("maven: reverse-domain containers skipped", ["src/main/java/com/acme/billing/Invoice.java"], MAVEN,
-     "billing: round totals half-up\n\nBody.\n\nVerified: final contents; mvn test; 31 passed\n", "clean", {}),
-    ("monorepo: scoped package", ["packages/@acme/payments/src/charge.ts"], MONOREPO,
-     "payments: retry declined cards once\n\nBody.\n\nVerified: final contents; pnpm test; 12 passed\n", "clean", {}),
-    ("root build file uses its full name", ["build.gradle"], ["build.gradle", "src/main/java/x/A.java"],
-     "build.gradle: pin the wrapper to 8.14\n\nBody.\n\nVerified: final contents; ./gradlew test; 5 passed\n", "clean", {}),
-    ("root extensionless build script gives all", ["build"], ["build", "src/x.py"],
-     "all: make the build script executable\n\nBody.\n\nVerified: final contents; ./build; exit 0\n", "clean", {}),
-    ("root extensionless build script is not the area build", ["build"], ["build", "src/x.py"],
-     "build: make the script executable\n\nBody.\n\nVerified: final contents; ./build; exit 0\n", "does not come from the changed paths", {}),
-    ("build directory is the area build", ["build/Makefile"], ["build/Makefile", "src/x.py"],
-     "build: add a lint target\n\nBody.\n\nVerified: final contents; make lint; clean\n", "clean", {}),
-    ("docs directory is the area docs", ["docs/payments.md"], MONOREPO,
-     "docs: describe the payments webhook\n\nBody.\n", "clean", {}),
-    ("change-type directory gives all", ["fix/patch.py"], ["fix/patch.py", "README.md"],
-     "all: apply the vendor patch on start-up\n\nBody.\n\nVerified: final contents; python3 fix/patch.py; exit 0\n", "clean", {}),
-    ("change-type directory is not an area", ["fix/patch.py"], ["fix/patch.py", "README.md"],
-     "fix: apply the vendor patch on start-up\n\nBody.\n\nVerified: final contents; python3 fix/patch.py; exit 0\n", "change-type word", {}),
-    ("__init__ stands for its directory", ["src/mypkg/__init__.py"], PY_SRC,
-     "mypkg: export the scheduler from the package root\n\nBody.\n\nVerified: final contents; python3 -m pytest; 12 passed\n", "clean", {}),
-    ("init.py is an ordinary file", ["src/mypkg/init.py"], PY_SRC,
-     "init: seed the default configuration\n\nBody.\n\nVerified: final contents; python3 -m pytest; 12 passed\n", "clean", {}),
-    ("crate root module gives all", ["src/lib.rs"], ["src/lib.rs", "src/parser.rs", "Cargo.toml"],
-     "all: export the parser from the crate root\n\nBody.\n\nVerified: final contents; cargo test; 9 passed\n", "clean", {}),
-    ("crate root module is not the area src", ["src/lib.rs"], ["src/lib.rs", "src/parser.rs", "Cargo.toml"],
-     "src: export the parser from the crate root\n\nBody.\n\nVerified: final contents; cargo test; 9 passed\n", "does not come from the changed paths", {}),
-    ("index.mts stands for a layout directory and gives all", ["src/index.mts"], ["src/index.mts", "src/a.ts", "package.json"],
-     "all: export the public surface from the package root\n\nBody.\n\nVerified: final contents; npm test; 4 passed\n", "clean", {}),
-    ("tests package under a layout directory gives all", ["src/tests/__init__.py"],
-     ["src/tests/__init__.py", "src/tests/test_a.py", "src/pkg/a.py", "README.md"],
-     "all: share the fixtures across the test package\n\nBody.\n\nVerified: final contents; python3 -m pytest; 3 passed\n", "clean", {}),
-    ("tests beneath a layout directory's only subdirectory is the area tests", ["src/mypkg/tests/test_cache.py"],
-     ["src/mypkg/__init__.py", "src/mypkg/cli.py", "src/mypkg/tests/test_cache.py", "README.md"],
-     "tests: cover the cache eviction path\n\nBody.\n\nVerified: final contents; python3 -m pytest; 3 passed\n", "clean", {}),
-    ("tests beneath an only subdirectory is not the file's stem", ["src/mypkg/tests/test_cache.py"],
-     ["src/mypkg/__init__.py", "src/mypkg/cli.py", "src/mypkg/tests/test_cache.py", "README.md"],
-     "test_cache: cover the cache eviction path\n\nBody.\n\nVerified: final contents; python3 -m pytest; 3 passed\n", "does not come from the changed paths", {}),
-    ("tests beneath a JVM package root is the area tests", ["src/main/java/com/acme/tests/CacheTest.java"],
-     ["src/main/java/com/acme/tests/CacheTest.java", "src/main/java/com/acme/billing/Invoice.java", "build.gradle"],
-     "tests: cover the cache eviction path\n\nBody.\n\nVerified: final contents; ./gradlew test; 7 passed\n", "clean", {}),
-    ("Main.kt is an ordinary file, not a directory file", ["src/main/kotlin/com/acme/Main.kt"],
-     ["src/main/kotlin/com/acme/Main.kt", "src/main/kotlin/com/acme/billing/A.kt", "build.gradle.kts"],
-     "main: start the billing service from the command line\n\nBody.\n\nVerified: final contents; ./gradlew test; 7 passed\n", "clean", {}),
-    ("github dir normalises", [".github/workflows/ci.yml"], [".github/workflows/ci.yml", "src/a.py", "src/b.py"],
-     "github: run tests on pull requests\n\nBody.\n\nNot-verified: workflow run; not run: no runner locally\n", "clean", {}),
-    ("path map wins", [".github/workflows/ci.yml"], [".github/workflows/ci.yml", "src/a.py"],
-     "ci: run tests on pull requests\n\nBody.\n\nNot-verified: workflow run; not run: no runner locally\n", "clean",
-     {"area_map": {".github/": "ci"}}),
-    ("all is always allowed", GO, GO, "all: first public version\n\nBody.\n\nVerified: final contents; go test ./...; ok\n",
+    ("a line that is one long token and a few words passes", GO,
+     "scheduler: log the request path\n\nSee " + LONG + " for the path.\n\n" + EV, "clean", {}),
+    ("a heading in the body is the writer's business", GO, "scheduler: renew leases\n\n## Why\n\nBody.\n\n" + EV, "clean", {}),
+
+    # what owes evidence
+    ("a documentation change owes nothing", ["docs/guide.md"], "docs: explain the retry policy\n", "clean", {}),
+    ("a .gitignore change owes nothing", [".gitignore"], "gitignore: ignore the virtualenv directory\n", "clean", {}),
+    ("an .editorconfig change owes nothing", [".editorconfig"], "editorconfig: indent YAML with two spaces\n", "clean", {}),
+    ("a CODEOWNERS change owes nothing", [".github/CODEOWNERS"], "github: route hook changes to the tooling team\n",
+     "clean", {}),
+    ("a licence change owes nothing", ["LICENSE"], "license: release under AGPL-3.0-or-later\n", "clean", {}),
+    ("a requirements file is not documentation", ["requirements.txt"], "deps: pin requests below 3\n", "no `Verified:`", {}),
+    ("a CMake list is not documentation", ["CMakeLists.txt"], "build: add the net target\n", "no `Verified:`", {}),
+    ("contract documentation owes evidence", ["docs/api/openapi.md"], "docs: describe the new error code\n",
+     "no `Verified:`", {"contract_docs": ["docs/api/"]}),
+    ("a mixed change owes evidence for its code", ["README.md", "internal/scheduler/worker.go"],
+     "scheduler: renew leases\n\nThe guide now says when.\n", "commit changes internal/scheduler/worker.go", {}),
+    ("an inert change owes nothing", GO, "scheduler: rename worker to runner\n", "clean", {"__inert__": True}),
+
+    # evidence grammar
+    ("Verified needs three parts", GO, "scheduler: renew leases\n\nVerified: go test ./...; ok 12 packages\n",
+     "three parts", {}),
+    ("Verified with a filler outcome is flagged", GO, "scheduler: renew leases\n\nVerified: this commit; go test ./...; passed\n",
      "filler word", {}),
-    ("trivial docs change, bare subject", ["README.md"], GO, "readme: fix the broken link to the configuration reference\n", "clean", {}),
-    ("trivial code change keeps evidence", ["internal/scheduler/worker.go"], GO,
-     "scheduler: apply gofmt formatting to the worker module\n\nVerified: final contents; gofmt -l . and go test ./...; clean, ok\n", "clean", {}),
-    ("trivial code change without evidence", ["internal/scheduler/worker.go"], GO,
-     "scheduler: apply gofmt formatting to the worker module\n", "no `Verified:` or `Not-verified:`", {}),
-    ("dependency bump needs a body", ["go.mod"], GO, "go: bump x/net to 0.30\n\nVerified: final contents; go test ./...; ok 12 packages\n", "body is missing", {}),
-    ("unindented continuation drops the block", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...;\n12 packages ok\n", "mixes trailers", {}),
-    ("trailer above a blank line is lost", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n\nCo-Authored-By: x <x@y.z>\n",
-     "outside the final trailer block", {}),
-    ("--- in body does not hide trailers", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody with a rule.\n---\nMore body.\n\nVerified: final contents; go test ./...; ok 12\n", "clean", {}),
-    ("Fixes: is renamed", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\nFixes: 9f3c1a2b7d4e (\"api: accept bodies\")\n",
+    ("Verified with a filler scope is flagged", GO, "scheduler: renew leases\n\nVerified: n/a; go test ./...; ok 12\n",
+     "filler word", {}),
+    ("Not-verified takes a scope and a reason", GO,
+     "scheduler: renew leases\n\nNot-verified: Windows path handling; no Windows runner was available\n", "clean", {}),
+    ("Not-verified in the older not-run form still passes", GO,
+     "scheduler: renew leases\n\nNot-verified: the suite; not run: no suite exists yet\n", "clean", {}),
+    ("Not-verified with no reason is flagged", GO, "scheduler: renew leases\n\nNot-verified: the suite was not run\n",
+     "needs `<what was not checked>; <why>`", {}),
+    ("Not-verified with a filler reason is flagged", GO, "scheduler: renew leases\n\nNot-verified: the suite; n/a\n",
+     "needs `<what was not checked>; <why>`", {}),
+    ("Refs must be an absolute URL", GO, "scheduler: renew leases\n\n" + EV + "Refs: #42\n", "absolute http(s) URL", {}),
+    ("Refs with a plain URL passes", GO, "scheduler: renew leases\n\n" + EV + "Refs: https://github.com/o/r/issues/42\n",
+     "clean", {}),
+    ("Fixes: is renamed", GO, "scheduler: renew leases\n\n" + EV + 'Fixes: 9f3c1a2b7d4e ("api: accept bodies")\n',
      "`Introduced-by:` in this format", {}),
-    ("closing keyword before #N", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nFixes #42 by rejecting them.\n\nVerified: final contents; go test ./...; ok 12\n", "would act on an issue", {}),
-    ("closing keyword before URL", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nThis resolves https://gitlab.example/g/p/-/issues/42 as asked.\n\nVerified: final contents; go test ./...; ok 12\n",
+    ("Introduced-by needs a hash and a quoted subject", GO, "scheduler: renew leases\n\n" + EV + "Introduced-by: #42\n",
+     "must be `<12-64 hex>", {}),
+    ("Breaking-Change needs two parts", GO, "scheduler: drop the v1 endpoint\n\n" + EV + "Breaking-Change: v1 is gone\n",
+     "needs `<what breaks>;", {}),
+
+    # the trailer block as Git reads it
+    ("an unindented continuation drops the block", GO,
+     "scheduler: renew leases\n\nBody.\n\nVerified: this commit; go test ./...;\n12 packages ok\n", "mixes trailers", {}),
+    ("an unindented line inside a Git-recognised block", GO,
+     "scheduler: renew leases\n\nBody.\n\nVerified: this commit; go test ./...;\nok 12 packages\nSigned-off-by: x <x@y.z>\n",
+     "neither `Key: value` nor an indented continuation", {}),
+    ("a trailer above a blank line is lost", GO,
+     "scheduler: renew leases\n\nBody.\n\n" + EV + "\nCo-Authored-By: x <x@y.z>\n", "outside the final trailer block", {}),
+    ("--- in the body does not hide the trailers", GO,
+     "scheduler: renew leases\n\nBody with a rule.\n---\nMore body.\n\n" + EV, "clean", {}),
+
+    # what would act on a forge
+    ("a closing keyword before #N is flagged", GO, "scheduler: renew leases\n\nFixes #42 by renewing them.\n\n" + EV,
      "would act on an issue", {}),
-    ("closing keyword before a configured key", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nFixes PROJ-42 by rejecting them.\n\nVerified: final contents; go test ./...; ok 12\n",
-     "would act on an issue", {"forge": "gitlab", "issue_keys": ["PROJ"]}),
-    ("closing keyword before an identifier", ["internal/api/handler.go"], GO,
-     "api: decode request bodies\n\nFixes UTF-8 decoding of the body.\n\nVerified: final contents; go test ./...; ok 12\n",
-     "clean", {"forge": "gitlab"}),
-    ("github-only forge ignores gitlab verbs", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nImplementing #42 as asked.\n\nVerified: final contents; go test ./...; ok 12\n", "clean", {"forge": "github"}),
-    ("Refs with plain URL is fine", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\nRefs: https://github.com/o/r/issues/42\n", "clean", {}),
-    ("typed header rejected under area profile", ["internal/api/handler.go"], GO,
-     "fix(api): reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "change-type word", {}),
-    ("typed profile accepts type(area)", ["internal/api/handler.go"], GO,
-     "fix(api): reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "clean", {"header": "typed"}),
-    ("typed profile: ! needs Breaking-Change", ["internal/api/handler.go"], GO,
-     "feat(api)!: drop the v1 endpoint\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "go together", {"header": "typed"}),
-    ("filler outcome", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...; passed\n", "filler word", {}),
-    ("Not-verified grammar", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody.\n\nNot-verified: the suite was not run\n", "needs `<scope>; not run:", {}),
-    ("CI token", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies\n\nBody, \"[skip ci]\" quoted.\n\nVerified: final contents; go test ./...; ok 12\n", "CI control token", {}),
-    ("subject too long", ["internal/api/handler.go"], GO,
-     "api: " + "x" * 70 + "\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "the limit is 72", {}),
-    ("capitalised outcome", ["internal/api/handler.go"], GO,
-     "api: Reject empty bodies\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "capital letter", {}),
-    ("identifier keeps its case", ["internal/api/handler.go"], GO,
-     "api: honour CONFIG_PATH as the config file location\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "clean", {}),
-    ("Breaking-Change needs two parts", ["internal/api/handler.go"], GO,
-     "api: drop the v1 endpoint\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\nBreaking-Change: v1 is gone\n", "needs `<what breaks>;", {}),
-    ("fixup is exempt", ["internal/api/handler.go"], GO, "fixup! api: reject empty bodies\n", "clean", {}),
-    ("revert keeps the native subject", ["internal/api/handler.go"], GO,
-     "Revert \"api: reject empty bodies\"\n\nThis reverts commit 9f3c1a2b7d4e9f3c1a2b7d4e9f3c1a2b7d4e9f3c. The\nrejection broke the health probe; the reversal is complete.\n\nVerified: final contents; go test ./...; ok 12\n", "clean", {}),
-    ("emoji in subject", ["internal/api/handler.go"], GO,
-     "api: reject empty bodies ✨\n\nBody.\n\nVerified: final contents; go test ./...; ok 12\n", "emoji", {}),
-    ("contract docs need evidence", ["docs/api/openapi.md"], GO + ["docs/api/openapi.md"],
-     "docs: describe the new error code\n\nBody.\n", "no `Verified:`", {"contract_docs": ["docs/api/"]}),
-    ("plain docs need no evidence", ["docs/guide.md"], GO + ["docs/guide.md"],
-     "docs: explain the retry policy\n\nThe guide now says when the client retries.\n", "clean", {}),
+    ("a closing keyword before a URL is flagged", GO,
+     "scheduler: renew leases\n\nThis resolves https://gitlab.example/g/p/-/issues/42 as asked.\n\n" + EV,
+     "would act on an issue", {}),
+    ("a closing keyword before a configured key is flagged", GO,
+     "scheduler: renew leases\n\nFixes PROJ-42 by renewing them.\n\n" + EV, "would act on an issue",
+     {"forge": "gitlab", "issue_keys": ["PROJ"]}),
+    ("a closing keyword before an identifier passes", GO,
+     "scheduler: decode request bodies\n\nFixes UTF-8 decoding of the body.\n\n" + EV, "clean", {"forge": "gitlab"}),
+    ("a key-shaped token without configured keys is an identifier", GO,
+     "scheduler: renew leases\n\nCloses PROJ-42 bodies early.\n\n" + EV, "clean", {}),
+    ("a github-only forge ignores gitlab verbs", GO, "scheduler: renew leases\n\nImplementing #42 as asked.\n\n" + EV,
+     "clean", {"forge": "github"}),
+    ("a CI token is flagged even quoted", GO, "scheduler: renew leases\n\nBody, \"[skip ci]\" quoted.\n\n" + EV,
+     "CI control token", {}),
+
+    # native Git messages and autosquash
+    ("a fixup is exempt", GO, "fixup! scheduler: renew leases\n", "clean", {}),
+    ("a revert keeps Git's subject", GO,
+     "Revert \"scheduler: renew leases\"\n\nThis reverts commit 9f3c1a2b7d4e9f3c1a2b7d4e9f3c1a2b7d4e9f3c. The\nrenewal broke the health probe.\n\n" + EV,
+     "clean", {}),
+    ("a revert on a code path still owes evidence", GO,
+     "Revert \"scheduler: renew leases\"\n\nThis reverts commit 9f3c1a2b7d4e9f3c1a2b7d4e9f3c1a2b7d4e9f3c.\n", "no `Verified:`", {}),
+
+    # the typed header profile
+    ("typed: type(area) is accepted", GO, "fix(scheduler): renew leases\n\n" + EV, "clean", {"header": "typed"}),
+    ("typed: the area still comes from the paths", GO, "fix(api): renew leases\n\n" + EV,
+     "not a directory or file name", {"header": "typed"}),
+    ("typed: ! needs Breaking-Change", GO, "feat(scheduler)!: drop the v1 endpoint\n\n" + EV, "go together",
+     {"header": "typed"}),
+    ("typed: Breaking-Change needs !", GO, TYPED_BREAK.replace("feat(api)", "feat(scheduler)"), "go together",
+     {"header": "typed"}),
+    ("typed: a revert carrying Breaking-Change needs no !", GO, TYPED_REVERT, "clean", {"header": "typed"}),
+    ("typed, paragraph marker: ! is flagged", GO,
+     "feat(scheduler)!: drop the v1 endpoint\n\nBREAKING CHANGE: v1 is gone; call v2\n\n" + EV,
+     "spaced `BREAKING CHANGE:`", {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: the trailer without the paragraph is flagged", GO,
+     TYPED_BREAK.replace("feat(api)", "feat(scheduler)"), "BREAKING CHANGE",
+     {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: trailer and paragraph together pass", GO,
+     TYPED_BREAK_PARAGRAPH.replace("feat(api)", "feat(scheduler)"), "clean",
+     {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: the paragraph without the trailer is flagged", GO,
+     TYPED_BREAK_PARAGRAPH.replace("feat(api)", "feat(scheduler)").replace(
+         "Breaking-Change: the v1 endpoint is gone; call v2\n", ""),
+     "Breaking-Change", {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: a sole breaking paragraph is the body", GO,
+     TYPED_BREAK_SOLE.replace("feat(api)", "feat(scheduler)"), "clean", {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: an empty breaking paragraph is flagged", GO,
+     TYPED_BREAK_EMPTY.replace("feat(api)", "feat(scheduler)"), "empty", {"header": "typed", "breaking_marker": "paragraph"}),
+    ("typed, paragraph marker: the breaking paragraph must come last", GO,
+     TYPED_BREAK_EARLY.replace("feat(api)", "feat(scheduler)"), "last paragraph",
+     {"header": "typed", "breaking_marker": "paragraph"}),
 ]
 
 
 def main():
     failures = 0
-    for name, paths, tracked, message, expect, overrides in CASES:
+    for name, paths, message, expect, overrides in CASES:
+        inert = overrides.pop("__inert__", False)
         config = {**DEFAULT, **overrides}
-        findings = hook.check_message(message, paths, config, tracked or paths, None)
+        findings = hook.check_message(message, paths, config, inert=inert)
         if expect == "clean":
             ok = not findings
         else:
