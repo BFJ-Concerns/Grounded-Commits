@@ -9,7 +9,7 @@ Closes the cursor leak reported after last week's incident.
 
 ### Check
 The cursor is closed from the response's context-done hook; check that nothing else in handler.go relies on that hook running exactly once.
-Reproduction against staging not run; the "close the query cursor" commit's trailer says why.
+Reproduction against staging not run; the "close the query cursor" commit says why.
 ```
 
 Four commits, one outcome:
@@ -31,11 +31,13 @@ The first two commits are mechanical and keep the buffered path; the third, "str
 
 ### Check
 Content-Length disappears from export responses; the "stream CSV exports" commit records the break. Do we know of any client that reads it?
-Production-volume replay not run; the "stream CSV exports" commit's trailer says why.
+Production-volume replay not run; the "stream CSV exports" commit says why.
 
 ### Try
 Against staging, request /exports/1.4m.csv with curl -N; worker RSS should stay flat where it used to climb to 2 GB.
 
 ### Not in this PR
-A progress signal for clients that used Content-Length to show one; no issue exists.
+A progress signal for clients that used Content-Length to show one; not tracked yet.
 ```
+
+Neither body repeats a commit's reasoning, lists files or states a result.

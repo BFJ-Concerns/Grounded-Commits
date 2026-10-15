@@ -8,7 +8,9 @@ in [`../guidance/`](../guidance/).
 The reference `commit-msg` hook: one Python 3 file (3.8 or newer; 3.11 or
 newer to read the optional configuration file) with no dependencies beyond
 Git (2.38 or newer to check a merge). It checks the mechanical rules of the
-format and prints the candidate areas for a change.
+format, the subject's shape and area, the width, the trailer block and the
+evidence on code changes, and prints the names a change offers as areas. It
+does not judge wording.
 
 Install into a repository that is adopting the format. The hook's path is what
 `git rev-parse --git-path hooks/commit-msg` prints, which honours
@@ -37,7 +39,7 @@ python3 "$hook" --rev HEAD     # smoke check: exit 0 or a list of findings
 Everyday use:
 
 ```sh
-python3 .git/hooks/commit-msg --areas               # areas the staged change could use
+python3 .git/hooks/commit-msg --areas               # names the staged change offers as areas
 python3 .git/hooks/commit-msg --rev HEAD            # check an existing commit
 python3 .git/hooks/commit-msg --range main..HEAD    # check a branch, for CI or before landing
 python3 .git/hooks/commit-msg --message-file draft.txt
@@ -57,7 +59,9 @@ checks the commit's own message, with the same paths and the same lookups of
 commit will get.
 
 A local hook sees only commits made where it is installed and is bypassed by
-`--no-verify`; the `--range` form is what a landing step or CI runs.
+`--no-verify`; the `--range` form is what a landing step or CI runs. Commits
+from before adoption will not pass it, so a range check starts at the
+adoption commit.
 
 Optional configuration goes in `.grounded-commits.toml` at the repository
 root:
@@ -66,12 +70,11 @@ root:
 forge = "github"          # whose closing keywords to reject: github, gitlab, forgejo, any (default any)
 header = "area"           # or "typed" for the Conventional Commits header profile
 breaking_marker = "trailer"  # typed profile: "paragraph" where the release parser reads BREAKING CHANGE:
-areas = ["cli", "config"] # areas that are always valid
+areas = ["cli", "config"] # areas that are always valid, beside all, docs, ci, build, tests and deps
 contract_docs = ["docs/api/"]  # documentation that states a contract and needs evidence
 issue_keys = ["PROJ"]     # tracker keys: PROJ-42 is then an issue reference, UTF-8 stays an identifier
-forge_merge_committers = ["noreply@github.com"]  # a merge with this committer was made by the forge and carries no trailers
 
-[area_map]                # path prefix -> area, longest match wins, checked before derivation
+[area_map]                # path prefix -> area, longest match wins, added to the path's own names
 ".github/" = "ci"
 "myproject/billing/" = "billing"
 ```
